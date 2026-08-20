@@ -151,6 +151,13 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Left broken:** Supabase provisioning and verified contact details remain outstanding. Product crops are derived from the supplied reference boards and should be replaced by individual approved product photos when available.
 **For the next agent:** Continue with Supabase/RLS and browser acceptance checks. Preserve the B2B language and the 20-item product taxonomy.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Added a mobile-only product marquee moving left to right, with a static horizontal-scroll fallback for reduced-motion users. Reworked the product rail from circular playful art into rectangular catalogue tiles. Completed the Phase 2 content pass by expanding all nine process stages, replacing generic Works placeholders with a real capability gallery, and aligning the quote wizard with B2B packaging terminology.
+**Files:** `components/HeroBoxes.tsx`, `app/globals.css`, `app/process/page.tsx`, `app/works/page.tsx`, `app/quote/page.tsx`.
+**Verified how:** `npm run build` generated all 32 routes successfully. After restarting the stale dev server, `/`, `/boxes`, `/works`, `/process` and `/quote` each returned HTTP 200.
+**Left broken:** Supabase/RLS, verified contact facts and the Phase 3 board animation are still outstanding. Product photographs remain reference-board crops until approved individual assets are supplied.
+**For the next agent:** Phase 2 is complete. Continue with Phase 3 board construction or provision Supabase first. Preserve the single mobile marquee and reduced-motion fallback.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED
