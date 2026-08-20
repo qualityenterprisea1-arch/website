@@ -108,38 +108,87 @@ export default function BoardConstruction() {
     let cancelled = false;
     import("animejs").then(({ createTimeline, onScroll, utils }) => {
       if (cancelled || !art) return;
-      const state = { expansion: 0, rotation: 0, scale: 1, beat: 0, highlight: 0 };
+      const driver = { progress: 0 };
       let lastPly = -1;
+      let lastCopy = -1;
       let lastTick = -1;
       let lastHighlight = -1;
+      const clamp = (value: number) => Math.min(1, Math.max(0, value));
+      const range = (progress: number, start: number, end: number) => clamp((progress - start) / (end - start));
+      const mix = (from: number, to: number, amount: number) => from + (to - from) * amount;
       const render = (progress: number) => {
-        const currentBeat = Math.round(state.beat);
-        const currentPly: 3 | 5 | 7 = currentBeat >= 4 ? 7 : currentBeat === 3 ? 5 : 3;
+        let currentPly: 3 | 5 | 7 = 3;
+        let copyBeat = 0;
+        let expansion = 0;
+        let rotation = 0;
+        let scale = 1;
+        let highlight = 0;
+
+        if (progress < 0.12) {
+          const amount = range(progress, 0, 0.12);
+          rotation = mix(-2.5, 0, amount);
+          scale = mix(0.88, 1, amount);
+        } else if (progress < 0.30) {
+          currentPly = 3;
+          copyBeat = 1;
+          expansion = mix(0, 62, range(progress, 0.12, 0.30));
+        } else if (progress < 0.43) {
+          currentPly = 3;
+          copyBeat = 2;
+          expansion = 62;
+          scale = mix(1, 1.06, range(progress, 0.30, 0.36));
+          highlight = range(progress, 0.30, 0.36);
+        } else if (progress < 0.48) {
+          currentPly = 3;
+          copyBeat = 2;
+          expansion = mix(62, 0, range(progress, 0.43, 0.48));
+          scale = mix(1.06, 1, range(progress, 0.43, 0.48));
+          highlight = mix(1, 0, range(progress, 0.43, 0.48));
+        } else if (progress < 0.60) {
+          currentPly = 5;
+          copyBeat = progress >= 0.57 ? 3 : 2;
+          expansion = mix(0, 54, range(progress, 0.48, 0.60));
+        } else if (progress < 0.70) {
+          currentPly = 5;
+          copyBeat = 3;
+          expansion = 54;
+        } else if (progress < 0.75) {
+          currentPly = 5;
+          copyBeat = 3;
+          expansion = mix(54, 0, range(progress, 0.70, 0.75));
+        } else {
+          currentPly = 7;
+          copyBeat = progress >= 0.90 ? 4 : 3;
+          expansion = mix(0, 44, range(progress, 0.75, 0.90));
+          scale = mix(1, 0.98, range(progress, 0.75, 0.90));
+        }
+
         if (currentPly !== lastPly) { lastPly = currentPly; layers.forEach((layer, index) => { layer.style.display = index < currentPly ? "" : "none"; }); }
-        setCopy(currentBeat);
-        utils.set(art, { rotate: state.rotation, scale: state.scale });
+        if (copyBeat !== lastCopy) { lastCopy = copyBeat; setCopy(copyBeat); }
+        utils.set(art, { rotate: rotation, scale });
         const middle = (currentPly - 1) / 2;
-        for (let index = 0; index < currentPly; index += 1) utils.set(layers[index], { translateY: centerOffset[currentPly] + (index - middle) * state.expansion });
-        if ((state.highlight > 0.5) !== (lastHighlight > 0.5)) { lastHighlight = state.highlight; layers.forEach((layer, index) => { if (SPEC[index].type === "flute") { layer.classList.toggle("is-on", state.highlight > 0.5); callouts[index]?.classList.toggle("is-on", state.highlight > 0.5); } }); }
-        for (let index = 0; index < currentPly; index += 1) if (SPEC[index].type === "liner") utils.set(layers[index], { opacity: 1 - state.highlight * 0.7 });
+        for (let index = 0; index < currentPly; index += 1) utils.set(layers[index], { translateY: centerOffset[currentPly] + (index - middle) * expansion });
+        if ((highlight > 0.5) !== (lastHighlight > 0.5)) { lastHighlight = highlight; layers.forEach((layer, index) => { if (SPEC[index].type === "flute") { layer.classList.toggle("is-on", highlight > 0.5); callouts[index]?.classList.toggle("is-on", highlight > 0.5); } }); }
+        for (let index = 0; index < currentPly; index += 1) if (SPEC[index].type === "liner") utils.set(layers[index], { opacity: 1 - highlight * 0.7 });
         const labelYs = Array.from({ length: currentPly }, (_, index) => 170 + (560 - 170) * (index / (currentPly - 1)));
         const middleLabel = (currentPly - 1) / 2;
         callouts.forEach((callout, index) => {
           if (index >= currentPly) { callout.style.opacity = "0"; return; }
-          const y = layerY[index] + heightAt(index) / 2 + centerOffset[currentPly] + (index - middleLabel) * state.expansion + DY;
+          const y = layerY[index] + heightAt(index) / 2 + centerOffset[currentPly] + (index - middleLabel) * expansion + DY;
           const labelY = labelYs[index];
           callout.querySelector("path")?.setAttribute("d", `M${X0 + W + DX} ${y} L${X0 + W + DX + 70} ${labelY} L864 ${labelY}`);
           callout.querySelector("circle")?.setAttribute("cx", String(X0 + W + DX));
           callout.querySelector("circle")?.setAttribute("cy", String(y));
           callout.querySelector("text:first-of-type")?.setAttribute("y", String(labelY - 2));
           callout.querySelector("text:last-of-type")?.setAttribute("y", String(labelY + 13));
-          callout.style.opacity = SPEC[index].type === "flute" ? String(Math.min(1, Math.max(0, (state.expansion - 14) / 34))) : String(Math.min(1, Math.max(0, (state.expansion - 14) / 34)) * (1 - state.highlight * 0.75));
+          const reveal = clamp((expansion - 14) / 34);
+          callout.style.opacity = SPEC[index].type === "flute" ? String(reveal) : String(reveal * (1 - highlight * 0.75));
         });
         const tickIndex = Math.round(progress * (ticks.length - 1));
         if (tickIndex !== lastTick) { if (lastTick >= 0) ticks[lastTick]?.classList.remove("is-active"); ticks[tickIndex]?.classList.add("is-active"); lastTick = tickIndex; }
       };
-      const timeline = createTimeline({ autoplay: false, defaults: { ease: "inOutQuad" }, onUpdate: (self) => render(self.progress || 0) });
-      timeline.set(state, { beat: 0 }, 0).add(state, { rotation: [-3, 0], scale: [0.86, 1], expansion: 0, duration: 700 }, 0).set(state, { beat: 1 }, 700).add(state, { expansion: [0, 66], scale: 1.05, duration: 800 }, 700).set(state, { beat: 2 }, 1500).add(state, { scale: 1.12, highlight: [0, 1], duration: 500 }, 1500).set(state, { beat: 3 }, 2000).add(state, { highlight: [1, 0], duration: 200 }, 2000).add(state, { expansion: [0, 58], scale: 1, duration: 800 }, 2000).set(state, { beat: 4 }, 2800).add(state, { expansion: [0, 48], scale: 0.9, rotation: 2, duration: 900 }, 2800);
+      const timeline = createTimeline({ autoplay: false, defaults: { ease: "linear" }, onUpdate: (self) => render(self.progress || 0) });
+      timeline.add(driver, { progress: [0, 1], duration: 5000 }, 0);
       observer = onScroll({ target: element, axis: "y", enter: "top top", leave: "bottom bottom", sync: 0.13 }).link(timeline);
       cleanupObserver = () => observer?.revert?.();
       render(0);
@@ -147,5 +196,5 @@ export default function BoardConstruction() {
     return () => { cancelled = true; cleanupObserver?.(); };
   }, []);
 
-  return <section ref={root} className="board-section"><div className="board-rig"><div className="board-stage"><div className="board-heading"><span className="board-step" data-board-step>01 / 05</span><h2 data-board-heading>The complete board specification</h2><p data-board-paragraph>Every carton is a stack of kraft layers. What you order is decided by what goes in that stack.</p></div><svg data-board-art viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="board-art-title"><title id="board-art-title">Exploded wireframe of corrugated board showing kraft liners and fluted medium.</title>{[6, 5, 4, 3, 2, 1, 0].map((index) => layerMarkup(index))}{SPEC.map((item, index) => <g className="board-callout" key={`callout-${index}`}><path className="board-leader" d="" /><circle className="board-dot" r="2.2" cx="0" cy="0" /><text className="board-label" x="880" y="0">{item.name}</text><text className="board-sub-label" x="880" y="0">{item.spec}</text></g>)}</svg><ol data-board-list className="board-mobile-list" /><div className="board-instrument"><div className="board-instrument-top"><span>Board specification</span><b data-board-ply>3 PLY</b></div><div className="board-instrument-rows"><div><span>Construction</span><span data-board-construction>Single wall</span></div><div><span>Bursting strength</span><span data-board-strength>6-8 kg/cm²</span></div><div><span>Load capacity</span><span data-board-load>10 kg</span></div><div><span>Minimum order</span><span>500 boxes</span></div></div><div className="board-ruler">{Array.from({ length: 22 }, (_, index) => <i data-board-tick key={index} />)}</div></div><div className="board-hint">Keep scrolling</div></div></div></section>;
+  return <section ref={root} className="board-section"><div className="board-rig"><div className="board-stage"><div className="board-heading"><span className="board-step" data-board-step>01 / 05</span><h2 data-board-heading>The complete board specification</h2><p data-board-paragraph>Every carton is a stack of kraft layers. What you order is decided by what goes in that stack.</p></div><svg data-board-art viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="board-art-title"><title id="board-art-title">Exploded wireframe of corrugated board showing kraft liners and fluted medium.</title>{[6, 5, 4, 3, 2, 1, 0].map((index) => layerMarkup(index))}{SPEC.map((item, index) => <g className="board-callout" key={`callout-${index}`}><path className="board-leader" d="" /><circle className="board-dot" r="2.2" cx="0" cy="0" /><text className="board-label" x="880" y="0">{item.name}</text><text className="board-sub-label" x="880" y="0">{item.spec}</text></g>)}</svg><ol data-board-list className="board-mobile-list" /><div className="board-instrument"><div className="board-instrument-top"><span>Board specification</span><b data-board-ply>3 PLY</b></div><div className="board-instrument-rows"><div><span>Construction</span><span data-board-construction>Single wall</span></div><div><span>Bursting strength</span><span data-board-strength>6-8 kg/cm²</span></div><div><span>Load capacity</span><span data-board-load>10 kg</span></div><div><span>Minimum order</span><span>500 boxes</span></div></div><div className="board-ruler">{Array.from({ length: 22 }, (_, index) => <i data-board-tick key={index} />)}</div></div></div></div></section>;
 }

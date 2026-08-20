@@ -165,6 +165,13 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Left broken:** In-app Browser was unavailable in this session, so the integrated scroll scrub, 375px layout and reduced-motion rendering were not visually driven after the port. The source and build paths are implemented, but a browser visual audit remains required. Supabase/RLS and verified contact details also remain outstanding.
 **For the next agent:** Phase 3 code is complete. Run the browser acceptance sweep when the in-app browser is available, then provision Supabase. Do not reintroduce the removed hero eyebrow.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Corrected the Phase 3 timing mismatch from the supplied screenshot. Replaced the independent beat side effects with one pure scroll-progress state machine so ply visibility, layer separation, callout opacity, flute highlight, copy, instrument values and ruler all derive from the same progress value. Removed the extra bottom scroll cue and kept the technical styling restrained for a corrugated manufacturing site.
+**Files:** `components/BoardConstruction.tsx`, `HANDOFF.md`.
+**Verified how:** `npm run build` passes with all 32 routes. Fresh dev server on port 3001 returned HTTP 200 for `/`, `/boxes` and `/quote`; the removed hero eyebrow is absent. Source audit confirms there is no `state.beat` side-effect model, and the timeline now animates a single `driver.progress` value.
+**Left broken:** In-app Browser was unavailable, so this pass could not be visually scrubbed at desktop or 375px. The static and reduced-motion branches remain implemented but still require browser-driven verification. Supabase/RLS and verified contact details remain outstanding.
+**For the next agent:** Run the browser scroll sweep when available. If the visual audit passes, Phase 3 is complete and the next work is Supabase/RLS or Phase 4 asset replacement.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED
