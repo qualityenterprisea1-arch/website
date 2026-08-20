@@ -12,7 +12,7 @@ const mono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: 
 
 export const metadata: Metadata = {
   title: { default: "Quality Enterprises | Corrugated Boxes from 500 Units", template: "%s | Quality Enterprises" },
-  description: "Corrugated box manufacturing in Narsingi, Hyderabad. Custom boxes from 500 units with a written quote in 4 working hours.",
+  description: "B2B corrugated packaging manufacturing in Narsingi, Hyderabad. Shipping cartons, mailers, storage boxes and protective formats with a written quote in 4 working hours.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

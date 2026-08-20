@@ -144,6 +144,13 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Left broken:** Supabase project/table and env vars are not provisioned. PHONE, WHATSAPP, EMAIL and GSTIN remain visibly marked unverified. Board wireframe Phase 3 remains deferred. Browser screenshot/a11y audit was not completed because the in-app browser connector was not available in the exposed tool set.
 **For the next agent:** Provision Supabase `quote_requests` with anon INSERT-only RLS, then run the Playwright acceptance checks at 375px and desktop. Keep the placeholder contact/spec values until verified.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Repositioned the site for B2B packaging buyers, changed the navigation logo to “Quality Enterprises”, removed the 500-box hero punchline, replaced consumer language, and expanded the product catalogue from 8 generic entries to 20 supplied product families. Excluded colour shipping boxes as requested. Added extracted product reference images under `public/products/` and wired them through the homepage, catalogue and detail routes.
+**Files:** `app/page.tsx`, `app/layout.tsx`, `app/about/page.tsx`, `components/Header.tsx`, `components/Footer.tsx`, `components/HeroBoxes.tsx`, `app/boxes/page.tsx`, `app/boxes/[slug]/page.tsx`, `content/boxTypes.ts`, `public/products/*`.
+**Verified how:** `npm run build` completed successfully with 32 static routes. `rg` confirmed the old D2C, cloud-kitchen and 500-unit hero positioning was removed; remaining `500` references are limited to the explicit MOQ/FAQ flow in the build spec.
+**Left broken:** Supabase provisioning and verified contact details remain outstanding. Product crops are derived from the supplied reference boards and should be replaced by individual approved product photos when available.
+**For the next agent:** Continue with Supabase/RLS and browser acceptance checks. Preserve the B2B language and the 20-item product taxonomy.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED
