@@ -158,6 +158,13 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Left broken:** Supabase/RLS, verified contact facts and the Phase 3 board animation are still outstanding. Product photographs remain reference-board crops until approved individual assets are supplied.
 **For the next agent:** Phase 2 is complete. Continue with Phase 3 board construction or provision Supabase first. Preserve the single mobile marquee and reduced-motion fallback.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Removed the “B2B corrugated packaging from Narsingi” hero eyebrow and completed Phase 3. Ported the existing board wireframe geometry into a lazy client component, integrated it as the second homepage section, retained the anime.js scroll observer to avoid the known completion freeze, and added static mobile and reduced-motion layouts that do not initialise anime.js.
+**Files:** `app/page.tsx`, `app/globals.css`, `components/BoardConstruction.tsx`, `components/BoardConstructionLoader.tsx`.
+**Verified how:** `npm run build` generated all 32 routes. The homepage first-load JS remained 113 kB while anime.js and the board implementation were emitted as separate chunks. Fresh dev-server checks returned HTTP 200 for `/`, `/boxes`, `/works`, `/process` and `/quote`; the removed hero line was absent from the rendered homepage HTML.
+**Left broken:** In-app Browser was unavailable in this session, so the integrated scroll scrub, 375px layout and reduced-motion rendering were not visually driven after the port. The source and build paths are implemented, but a browser visual audit remains required. Supabase/RLS and verified contact details also remain outstanding.
+**For the next agent:** Phase 3 code is complete. Run the browser acceptance sweep when the in-app browser is available, then provision Supabase. Do not reintroduce the removed hero eyebrow.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED
