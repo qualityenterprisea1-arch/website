@@ -1,5 +1,9 @@
 # BUILD SPEC — Quality Enterprises website
 
+> **Two agents work this repo (Claude + GPT-5.6). Read `HANDOFF.md` before you
+> touch anything** — it carries current state, verified facts and dead ends.
+> This file is *what to build*; `HANDOFF.md` is *what happened*. Keep them separate.
+
 Hand this file to the implementing model as the single source of truth. Keep it in the repo root as `SPEC.md`. Update it after every session. Do not rely on chat history.
 
 ---
