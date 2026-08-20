@@ -54,11 +54,11 @@ function wave(y: number, amplitude: number, xOffset = 0, yOffset = 0) {
 
 function layerMarkup(index: number) {
   const y = layerY[index];
-  if (SPEC[index].type === "liner") return <g className="board-layer" key={`layer-${index}`}><path className="board-hair" d={`M${X0} ${y} L${X0 + W} ${y} L${X0 + W + DX} ${y + DY} L${X0 + DX} ${y + DY} Z`} /><path className="board-hair" d={`M${X0} ${y} L${X0} ${y + LINER_THICKNESS} L${X0 + W} ${y + LINER_THICKNESS} L${X0 + W} ${y}`} /><path className="board-hair" d={`M${X0 + W} ${y + LINER_THICKNESS} L${X0 + W + DX} ${y + LINER_THICKNESS + DY} L${X0 + W + DX} ${y + DY}`} /><path className="board-hair board-faint" d={`M${X0 + DX} ${y + DY} L${X0 + DX} ${y + DY + LINER_THICKNESS} L${X0 + W + DX} ${y + DY + LINER_THICKNESS}`} /></g>;
+  if (SPEC[index].type === "liner") return <g className="board-layer" data-layer-index={index} key={`layer-${index}`}><path className="board-hair" d={`M${X0} ${y} L${X0 + W} ${y} L${X0 + W + DX} ${y + DY} L${X0 + DX} ${y + DY} Z`} /><path className="board-hair" d={`M${X0} ${y} L${X0} ${y + LINER_THICKNESS} L${X0 + W} ${y + LINER_THICKNESS} L${X0 + W} ${y}`} /><path className="board-hair" d={`M${X0 + W} ${y + LINER_THICKNESS} L${X0 + W + DX} ${y + LINER_THICKNESS + DY} L${X0 + W + DX} ${y + DY}`} /><path className="board-hair board-faint" d={`M${X0 + DX} ${y + DY} L${X0 + DX} ${y + DY + LINER_THICKNESS} L${X0 + W + DX} ${y + DY + LINER_THICKNESS}`} /></g>;
   const mid = y + FLUTE_HEIGHT / 2;
   const amplitude = (FLUTE_HEIGHT - 10) / 2;
   const points = Array.from({ length: W / (PERIOD / 2) + 1 }, (_, point) => point * PERIOD / 2);
-  return <g className="board-layer" key={`layer-${index}`}><path className="board-hair board-hair-strong" d={wave(mid - 2, amplitude)} /><path className="board-hair board-hair-strong" d={wave(mid + 2, amplitude)} /><path className="board-hair board-faint" d={wave(mid - 2, amplitude, DX, DY)} />{points.map((x) => { const angle = (x / PERIOD) * Math.PI * 2; const yPoint = mid - 2 - Math.sin(angle) * amplitude; return <path className="board-hair board-faint" key={x} d={`M${X0 + x} ${yPoint} L${X0 + x + DX} ${yPoint + DY}`} />; })}<path className="board-hair" d={`M${X0} ${mid - 2} L${X0} ${mid + 2}`} /><path className="board-hair" d={`M${X0 + W} ${mid - 2} L${X0 + W} ${mid + 2}`} /></g>;
+  return <g className="board-layer" data-layer-index={index} key={`layer-${index}`}><path className="board-hair board-hair-strong" d={wave(mid - 2, amplitude)} /><path className="board-hair board-hair-strong" d={wave(mid + 2, amplitude)} /><path className="board-hair board-faint" d={wave(mid - 2, amplitude, DX, DY)} />{points.map((x) => { const angle = (x / PERIOD) * Math.PI * 2; const yPoint = mid - 2 - Math.sin(angle) * amplitude; return <path className="board-hair board-faint" key={x} d={`M${X0 + x} ${yPoint} L${X0 + x + DX} ${yPoint + DY}`} />; })}<path className="board-hair" d={`M${X0} ${mid - 2} L${X0} ${mid + 2}`} /><path className="board-hair" d={`M${X0 + W} ${mid - 2} L${X0 + W} ${mid + 2}`} /></g>;
 }
 
 export default function BoardConstruction() {
@@ -76,7 +76,7 @@ export default function BoardConstruction() {
     const strength = element.querySelector<HTMLElement>("[data-board-strength]");
     const load = element.querySelector<HTMLElement>("[data-board-load]");
     const ticks = [...element.querySelectorAll<HTMLElement>("[data-board-tick]")];
-    const layers = [...element.querySelectorAll<SVGGElement>(".board-layer")];
+    const layers = [...element.querySelectorAll<SVGGElement>(".board-layer")].sort((a, b) => Number(a.dataset.layerIndex) - Number(b.dataset.layerIndex));
     const callouts = [...element.querySelectorAll<SVGGElement>(".board-callout")];
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const wide = window.matchMedia("(min-width: 900px)").matches;
@@ -106,7 +106,7 @@ export default function BoardConstruction() {
     if (reduced || !wide) { staticRender(3); return () => undefined; }
 
     let cancelled = false;
-    import("animejs").then(({ createTimeline, onScroll, utils }) => {
+    import("animejs").then(({ createTimeline, onScroll }) => {
       if (cancelled || !art) return;
       const driver = { progress: 0 };
       let lastPly = -1;
@@ -120,14 +120,11 @@ export default function BoardConstruction() {
         let currentPly: 3 | 5 | 7 = 3;
         let copyBeat = 0;
         let expansion = 0;
-        let rotation = 0;
-        let scale = 1;
         let highlight = 0;
 
         if (progress < 0.12) {
           const amount = range(progress, 0, 0.12);
-          rotation = mix(-2.5, 0, amount);
-          scale = mix(0.88, 1, amount);
+          void amount;
         } else if (progress < 0.30) {
           currentPly = 3;
           copyBeat = 1;
@@ -136,13 +133,11 @@ export default function BoardConstruction() {
           currentPly = 3;
           copyBeat = 2;
           expansion = 62;
-          scale = mix(1, 1.06, range(progress, 0.30, 0.36));
           highlight = range(progress, 0.30, 0.36);
         } else if (progress < 0.48) {
           currentPly = 3;
           copyBeat = 2;
           expansion = mix(62, 0, range(progress, 0.43, 0.48));
-          scale = mix(1.06, 1, range(progress, 0.43, 0.48));
           highlight = mix(1, 0, range(progress, 0.43, 0.48));
         } else if (progress < 0.60) {
           currentPly = 5;
@@ -160,16 +155,14 @@ export default function BoardConstruction() {
           currentPly = 7;
           copyBeat = progress >= 0.90 ? 4 : 3;
           expansion = mix(0, 44, range(progress, 0.75, 0.90));
-          scale = mix(1, 0.98, range(progress, 0.75, 0.90));
         }
 
         if (currentPly !== lastPly) { lastPly = currentPly; layers.forEach((layer, index) => { layer.style.display = index < currentPly ? "" : "none"; }); }
         if (copyBeat !== lastCopy) { lastCopy = copyBeat; setCopy(copyBeat); }
-        utils.set(art, { rotate: rotation, scale });
         const middle = (currentPly - 1) / 2;
-        for (let index = 0; index < currentPly; index += 1) utils.set(layers[index], { translateY: centerOffset[currentPly] + (index - middle) * expansion });
+        for (let index = 0; index < currentPly; index += 1) layers[index].setAttribute("transform", `translate(0 ${centerOffset[currentPly] + (index - middle) * expansion})`);
         if ((highlight > 0.5) !== (lastHighlight > 0.5)) { lastHighlight = highlight; layers.forEach((layer, index) => { if (SPEC[index].type === "flute") { layer.classList.toggle("is-on", highlight > 0.5); callouts[index]?.classList.toggle("is-on", highlight > 0.5); } }); }
-        for (let index = 0; index < currentPly; index += 1) if (SPEC[index].type === "liner") utils.set(layers[index], { opacity: 1 - highlight * 0.7 });
+        for (let index = 0; index < currentPly; index += 1) if (SPEC[index].type === "liner") layers[index].style.opacity = String(1 - highlight * 0.7);
         const labelYs = Array.from({ length: currentPly }, (_, index) => 170 + (560 - 170) * (index / (currentPly - 1)));
         const middleLabel = (currentPly - 1) / 2;
         callouts.forEach((callout, index) => {

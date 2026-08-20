@@ -172,6 +172,13 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Left broken:** In-app Browser was unavailable, so this pass could not be visually scrubbed at desktop or 375px. The static and reduced-motion branches remain implemented but still require browser-driven verification. Supabase/RLS and verified contact details remain outstanding.
 **For the next agent:** Run the browser scroll sweep when available. If the visual audit passes, Phase 3 is complete and the next work is Supabase/RLS or Phase 4 asset replacement.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Fixed the deeper SVG alignment issue exposed by the follow-up screenshots. The rendered layers are now tagged and sorted by their actual layer index before animation, and their movement uses explicit SVG `transform` attributes in the same coordinate system as the leader-line math. Removed rotation and scale motion that made the technical diagram feel decorative. Added a B2B credibility section for delivery planning, custom solutions and a complete production line, based on the supplied industry reference without copying unsupported claims.
+**Files:** `components/BoardConstruction.tsx`, `app/globals.css`, `app/page.tsx`.
+**Verified how:** `npm run build` passes with all 32 routes. Source audit confirms the layer index sort, SVG transform attributes and absence of the old scroll cue. The B2B proof section is present in the homepage source and avoids guaranteed delivery/revenue claims.
+**Left broken:** In-app Browser was unavailable, so the corrected 3-ply, 5-ply and 7-ply alignment still needs a visual desktop and 375px scrub audit. Supabase/RLS and verified contact details remain outstanding.
+**For the next agent:** Start with a browser visual check of the board states before making further animation changes. The technical section should stay restrained and functional.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED
