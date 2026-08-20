@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board construction — technical illustration sequence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#D7D4CB; --ink:#16150F; --hair:#16150F;
+  --dim:rgba(22,21,15,.5); --acc:#D6402F;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bone);color:var(--ink);
+  font-family:"Instrument Sans",system-ui,sans-serif;overflow-x:hidden}
+.mono{font-family:"Space Mono",monospace}
+
+.pad{min-height:52vh;display:grid;place-items:center;text-align:center;padding:60px 24px}
+.pad h2{font-size:clamp(24px,3.4vw,38px);font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.pad p{max-width:46ch;color:var(--dim);margin-top:12px;font-size:15px}
+
+#rig{position:relative;height:620vh}
+#stage{position:sticky;top:0;height:100vh;overflow:hidden}
+
+/* heading, top-left, exactly like the reference */
+#hd{position:absolute;left:clamp(20px,4vw,64px);top:clamp(28px,5vh,64px);z-index:4;max-width:340px}
+#hd h3{font-size:clamp(20px,2.3vw,30px);font-weight:600;letter-spacing:-.022em;line-height:1.1;margin-bottom:10px}
+#hd p{font-size:14px;line-height:1.5;color:var(--dim)}
+#hd .step{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--acc);display:block;margin-bottom:10px}
+
+svg#art{position:absolute;inset:0;width:100%;height:100%}
+.hair{fill:none;stroke:var(--hair);stroke-width:1;vector-effect:non-scaling-stroke}
+.hair-2{stroke-width:1.5}
+.faint{stroke:rgba(22,21,15,.28)}
+.lead{stroke:rgba(22,21,15,.42);stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+.lt{font-family:"Space Mono",monospace;font-size:11px;fill:var(--ink)}
+.ls{font-family:"Space Mono",monospace;font-size:9.5px;fill:var(--dim)}
+.cg{opacity:0}
+.on .hair{stroke:var(--acc);stroke-width:1.6}
+.on .lt{fill:var(--acc)}
+.on .lead{stroke:var(--acc)}
+
+/* instrument panel, bottom right, like their bundle-size box */
+#inst{position:absolute;right:clamp(16px,3vw,40px);bottom:clamp(16px,3vh,40px);z-index:5;
+  border:1px solid rgba(22,21,15,.28);border-radius:7px;background:rgba(215,212,203,.9);
+  backdrop-filter:blur(4px);width:250px;overflow:hidden;font-family:"Space Mono",monospace}
+#inst .top{display:flex;justify-content:space-between;padding:9px 12px 7px;font-size:10px;
+  letter-spacing:.06em;border-bottom:1px solid rgba(22,21,15,.14)}
+#inst .top b{font-weight:700}
+#inst .rows{padding:8px 12px 10px;display:grid;gap:5px;font-size:10px}
+#inst .rw{display:flex;justify-content:space-between;color:var(--dim)}
+#inst .rw span:last-child{color:var(--ink)}
+#ruler{display:flex;gap:2px;padding:7px 12px 9px;border-top:1px solid rgba(22,21,15,.14)}
+#ruler i{flex:1;height:9px;background:rgba(22,21,15,.2);border-radius:1px}
+#ruler i.a{background:var(--acc)}
+
+.hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;
+  font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dim)}
+
+@media(max-width:900px){
+  #hd{max-width:none;right:clamp(20px,4vw,64px)}
+  #inst{left:clamp(16px,3vw,40px);width:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  #rig{height:auto}#stage{position:static;height:80vh}
+  .cg{opacity:1}.hint{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="pad">
+  <h2>Scroll down</h2>
+  <p>Wireframe technical illustration, driven by anime.js. Same approach as the reference, different subject.</p>
+</div>
+
+<div id="rig">
+  <div id="stage">
+    <div id="hd">
+      <span class="step" id="c-step">01 / 05</span>
+      <h3 id="c-h">The complete board specification</h3>
+      <p id="c-p">Every carton is a stack of kraft layers. What you order is decided entirely by what goes in that stack.</p>
+    </div>
+
+    <svg id="art" viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet"></svg>
+
+    <div id="inst">
+      <div class="top"><span>Board specification</span><b id="i-ply">3 PLY</b></div>
+      <div class="rows">
+        <div class="rw"><span>Construction</span><span id="i-con">Single wall</span></div>
+        <div class="rw"><span>Bursting strength</span><span id="i-bs">6–8 kg/cm²</span></div>
+        <div class="rw"><span>Load capacity</span><span id="i-load">10 kg</span></div>
+        <div class="rw"><span>Minimum order</span><span>450 boxes</span></div>
+      </div>
+      <div id="ruler"></div>
+    </div>
+
+    <div class="hint" id="hint">▼ Keep scrolling</div>
+  </div>
+</div>
+
+<div class="pad">
+  <h2>Sequence complete</h2>
+  <p>Hands off into the box-type grid.</p>
+</div>
+
+<script>
+/* ---------------- geometry ---------------- */
+const W=300, DX=196, DY=-98, X0=200, YT=250;
+const LT=14, FH=44, PER=50;
+const SPEC=[
+  {t:'l',nm:'OUTER LINER',   sp:'150 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'C-FLUTE · 4.0 MM'},
+  {t:'l',nm:'INNER LINER',   sp:'150 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'C-FLUTE · 4.0 MM'},
+  {t:'l',nm:'MIDDLE LINER',  sp:'180 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'B-FLUTE · 3.0 MM'},
+  {t:'l',nm:'BASE LINER',    sp:'180 GSM VIRGIN KRAFT'}
+];
+const H=i=>SPEC[i].t==='l'?LT:FH;
+const Y=[]; {let a=YT; for(let i=0;i<7;i++){Y.push(a);a+=H(i);}}
+
+function wave(y,amp,xo,yo){
+  let d=`M${X0+xo} ${y+yo}`;
+  for(let x=0;x<W;x+=PER){
+    d+=` Q${X0+x+PER*.25+xo} ${y-amp+yo} ${X0+x+PER*.5+xo} ${y+yo}`;
+    d+=` Q${X0+x+PER*.75+xo} ${y+amp+yo} ${X0+x+PER+xo} ${y+yo}`;
+  }
+  return d;
+}
+
+function linerSVG(i){
+  const y=Y[i],h=LT;
+  return `
+  <path class="hair" d="M${X0} ${y} L${X0+W} ${y} L${X0+W+DX} ${y+DY} L${X0+DX} ${y+DY} Z"/>
+  <path class="hair" d="M${X0} ${y} L${X0} ${y+h} L${X0+W} ${y+h} L${X0+W} ${y}"/>
+  <path class="hair" d="M${X0+W} ${y+h} L${X0+W+DX} ${y+h+DY} L${X0+W+DX} ${y+DY}"/>
+  <path class="hair faint" d="M${X0+DX} ${y+DY} L${X0+DX} ${y+DY+h} L${X0+W+DX} ${y+DY+h}"/>`;
+}
+
+function fluteSVG(i){
+  const y=Y[i],h=FH,amp=(h-10)/2,t=4,mid=y+h/2;
+  let d=`<path class="hair hair-2" d="${wave(mid-t/2,amp,0,0)}"/>
+         <path class="hair hair-2" d="${wave(mid+t/2,amp,0,0)}"/>
+         <path class="hair faint" d="${wave(mid-t/2,amp,DX,DY)}"/>`;
+  for(let x=0;x<=W;x+=PER/2){
+    const k=(x/PER)*Math.PI*2;
+    const py=mid-t/2-Math.sin(k)*amp;
+    d+=`<path class="hair faint" d="M${X0+x} ${py} L${X0+x+DX} ${py+DY}"/>`;
+  }
+  d+=`<path class="hair" d="M${X0} ${mid-t/2} L${X0} ${mid+t/2}"/>
+      <path class="hair" d="M${X0+W} ${mid-t/2} L${X0+W} ${mid+t/2}"/>`;
+  return d;
+}
+
+/* ---------------- build ---------------- */
+const art=document.getElementById('art');
+const LBX=880;                    // label column x
+let s='';
+for(let i=6;i>=0;i--){
+  s+=`<g class="lyr" id="L${i}">${SPEC[i].t==='l'?linerSVG(i):fluteSVG(i)}</g>`;
+}
+for(let i=0;i<7;i++){
+  s+=`<g class="cg" id="C${i}">
+        <path class="lead" id="P${i}" d=""/>
+        <circle id="D${i}" class="hair" r="2.2" cx="0" cy="0" fill="var(--ink)"/>
+        <text class="lt" id="T${i}" x="${LBX}" y="0">${SPEC[i].nm}</text>
+        <text class="ls" id="S${i}" x="${LBX}" y="0">${SPEC[i].sp}</text>
+      </g>`;
+}
+art.innerHTML=s;
+
+const $=id=>document.getElementById(id);
+const L=[...Array(7)].map((_,i)=>$('L'+i));
+const C=[...Array(7)].map((_,i)=>$('C'+i));
+
+const ruler=$('ruler');
+ruler.innerHTML=Array.from({length:22},()=>'<i></i>').join('');
+const ticks=[...ruler.children];
+
+const tot=n=>{let a=0;for(let i=0;i<n;i++)a+=H(i);return a};
+const CEN={3:(tot(7)-tot(3))/2,5:(tot(7)-tot(5))/2,7:0};
+
+const COPY=[
+  ['01 / 05','The complete board specification','Every carton is a stack of kraft layers. What you order is decided entirely by what goes in that stack.'],
+  ['02 / 05','Three layers. 3 ply.','Two flat kraft liners bonded either side of one fluted medium. Standard board for apparel, light e-commerce and bakery.'],
+  ['03 / 05','The flute carries the load.','Liners hold shape. The fluted medium is what resists crushing when cartons are stacked six high in a delivery van.'],
+  ['04 / 05','Add a flute. 5 ply.','A second fluted layer roughly doubles stacking strength. This is the board for FMCG, transit and warehoused stock.'],
+  ['05 / 05','Three flutes. 7 ply.','Triple wall, for machinery and export loads to 50 kg. Heavier than most orders need, and we will say so.']
+];
+const READ=[
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'5 PLY',c:'Double wall',b:'10–14 kg/cm²',l:'25 kg'},
+  {p:'7 PLY',c:'Triple wall',b:'16–20 kg/cm²',l:'50 kg'}
+];
+
+let cur=-1;
+function beat(n){
+  if(n===cur)return; cur=n;
+  const c=COPY[n], r=READ[n];
+  $('c-step').textContent=c[0]; $('c-h').textContent=c[1]; $('c-p').textContent=c[2];
+  $('i-ply').textContent=r.p; $('i-con').textContent=r.c;
+  $('i-bs').textContent=r.b;  $('i-load').textContent=r.l;
+}
+
+/* leader lines recomputed as layers move */
+function leaders(n,offset,alpha){
+  const ys=[]; const top=170, bot=560;
+  for(let i=0;i<n;i++) ys.push(top+(bot-top)*(n===1?.5:i/(n-1)));
+  for(let i=0;i<7;i++){
+    if(i>=n){ C[i].style.opacity=0; continue; }
+    const mid=(n-1)/2;
+    const ly=Y[i]+H(i)/2+CEN[n]+(i-mid)*offset+DY;
+    const lx=X0+W+DX;
+    const ty=ys[i];
+    $('P'+i).setAttribute('d',`M${lx} ${ly} L${lx+70} ${ty} L${LBX-16} ${ty}`);
+    $('D'+i).setAttribute('cx',lx); $('D'+i).setAttribute('cy',ly);
+    $('T'+i).setAttribute('y',ty-2);
+    $('S'+i).setAttribute('y',ty+13);
+    C[i].style.opacity=alpha;
+  }
+}
+
+/* ---------------- anime.js ---------------- */
+import('https://cdn.jsdelivr.net/npm/animejs@4/+esm').then(({createTimeline,onScroll,utils})=>{
+  const st={ex:0,rot:0,sc:1};
+  let ply=3;
+
+  function render(){
+    utils.set(art,{rotate:st.rot,scale:st.sc});
+    const mid=(ply-1)/2;
+    L.forEach((g,i)=>{
+      g.style.display=i<ply?'':'none';
+      if(i<ply) utils.set(g,{translateY:CEN[ply]+(i-mid)*st.ex});
+    });
+    leaders(ply,st.ex,Math.min(1,Math.max(0,(st.ex-14)/34)));
+    const p=tl.progress||0;
+    ticks.forEach((t,i)=>t.classList.toggle('a',i===Math.round(p*(ticks.length-1))));
+  }
+  function setPly(n){ply=n;render();}
+  function hi(on){
+    L.forEach((g,i)=>{ if(SPEC[i].t==='f') g.classList.toggle('on',on); });
+    C.forEach((g,i)=>{ if(SPEC[i].t==='f') g.classList.toggle('on',on);
+                       else utils.set(g,{opacity:on?.25:1}); });
+    L.forEach((g,i)=>{ if(SPEC[i].t==='l') utils.set(g,{opacity:on?.3:1}); });
+  }
+
+  const tl=createTimeline({autoplay:false,defaults:{ease:'inOutQuad'},onUpdate:render});
+
+  tl
+  .call(()=>{beat(0);setPly(3);hi(false);},0)
+  .add(st,{rot:[-3,0],sc:[.86,1],ex:0,duration:700},0)
+  .call(()=>beat(1),700)
+  .add(st,{ex:[0,66],sc:1.05,duration:800},700)
+  .call(()=>{beat(2);hi(true);},1500)
+  .add(st,{sc:1.12,duration:500},1500)
+  .call(()=>{beat(3);hi(false);setPly(5);},2000)
+  .add(st,{ex:[0,58],sc:1,duration:800},2000)
+  .call(()=>{beat(4);setPly(7);},2800)
+  .add(st,{ex:[0,48],sc:.9,rot:2,duration:900},2800);
+
+  onScroll({target:'#rig',container:window,axis:'y',
+    enter:'top top',leave:'bottom bottom',sync:.13,
+    onUpdate:o=>{$('hint').style.opacity=o.progress>.04?0:1;}
+  }).link(tl);
+
+  render();
+}).catch(()=>{
+  document.querySelectorAll('.cg').forEach(g=>g.style.opacity=1);
+  for(let i=3;i<7;i++){ $('L'+i).style.display='none'; $('C'+i).style.opacity=0; }
+  leaders(3,60,1); $('hint').style.display='none';
+});
+</script>
+</body>
+</html>

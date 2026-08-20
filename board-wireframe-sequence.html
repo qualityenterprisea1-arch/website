@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board construction — technical illustration sequence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#D7D4CB; --ink:#16150F; --hair:#16150F;
+  --dim:rgba(22,21,15,.5); --acc:#D6402F;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bone);color:var(--ink);
+  font-family:"Instrument Sans",system-ui,sans-serif;overflow-x:hidden}
+.mono{font-family:"Space Mono",monospace}
+
+.pad{min-height:52vh;display:grid;place-items:center;text-align:center;padding:60px 24px}
+.pad h2{font-size:clamp(24px,3.4vw,38px);font-weight:600;letter-spacing:-.02em;line-height:1.05}
+.pad p{max-width:46ch;color:var(--dim);margin-top:12px;font-size:15px}
+
+#rig{position:relative;height:620vh}
+#stage{position:sticky;top:0;height:100vh;overflow:hidden}
+
+#hd{position:absolute;left:clamp(20px,4vw,64px);top:clamp(28px,5vh,64px);z-index:4;max-width:340px}
+#hd h3{font-size:clamp(20px,2.3vw,30px);font-weight:600;letter-spacing:-.022em;line-height:1.1;margin-bottom:10px}
+#hd p{font-size:14px;line-height:1.5;color:var(--dim)}
+#hd .step{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--acc);display:block;margin-bottom:10px}
+
+svg#art{position:absolute;inset:0;width:100%;height:100%}
+.hair{fill:none;stroke:var(--hair);stroke-width:1;vector-effect:non-scaling-stroke}
+.hair-2{stroke-width:1.5}
+.faint{stroke:rgba(22,21,15,.28)}
+.lead{stroke:rgba(22,21,15,.42);stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+.lt{font-family:"Space Mono",monospace;font-size:11px;fill:var(--ink)}
+.ls{font-family:"Space Mono",monospace;font-size:9.5px;fill:var(--dim)}
+.cg{opacity:0}
+.on .hair{stroke:var(--acc);stroke-width:1.6}
+.on .lt{fill:var(--acc)}
+.on .lead{stroke:var(--acc)}
+
+/* promoted only while the sequence is live; released at the end so the
+   compositor is not holding layers for the rest of the page */
+body.live #art,body.live .lyr{will-change:transform}
+
+#inst{position:absolute;right:clamp(16px,3vw,40px);bottom:clamp(16px,3vh,40px);z-index:5;
+  border:1px solid rgba(22,21,15,.28);border-radius:7px;background:var(--bone);
+  width:250px;overflow:hidden;font-family:"Space Mono",monospace}
+#inst .top{display:flex;justify-content:space-between;padding:9px 12px 7px;font-size:10px;
+  letter-spacing:.06em;border-bottom:1px solid rgba(22,21,15,.14)}
+#inst .top b{font-weight:700}
+#inst .rows{padding:8px 12px 10px;display:grid;gap:5px;font-size:10px}
+#inst .rw{display:flex;justify-content:space-between;color:var(--dim)}
+#inst .rw span:last-child{color:var(--ink)}
+#ruler{display:flex;gap:2px;padding:7px 12px 9px;border-top:1px solid rgba(22,21,15,.14)}
+#ruler i{flex:1;height:9px;background:rgba(22,21,15,.2);border-radius:1px}
+#ruler i.a{background:var(--acc)}
+
+.hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;
+  font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dim);transition:opacity .3s}
+
+/* ---- static labelled diagram: mobile + reduced motion ---- */
+#mlist{display:none;list-style:none;padding:0 clamp(20px,5vw,28px) 4px;
+  font-family:"Space Mono",monospace}
+#mlist li{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+  padding:9px 0;border-bottom:1px solid rgba(22,21,15,.16);font-size:11px;line-height:1.35}
+#mlist b{font-weight:700;letter-spacing:.04em}
+#mlist li>span:last-child{color:var(--dim);text-align:right;flex-shrink:0}
+#mlist .mhead{display:flex;gap:9px;align-items:flex-start}
+#mlist i{width:9px;height:9px;flex-shrink:0;margin-top:2px;border:1px solid var(--ink);display:block}
+#mlist li.fl i{background:var(--acc);border-color:var(--acc)}
+
+body.static #rig{height:auto}
+body.static #stage{position:static;height:auto;overflow:visible;padding:clamp(28px,7vw,48px) 0 8px}
+body.static #hd{position:static;max-width:none;padding:0 clamp(20px,5vw,28px) 18px}
+body.static svg#art{position:static;height:min(46vh,320px);width:100%}
+body.static #inst{position:static;width:auto;margin:18px clamp(20px,5vw,28px) 0;border-radius:10px}
+body.static .hint{display:none}
+body.static .cg{display:none}
+body.static #mlist{display:block;margin-top:20px}
+</style>
+</head>
+<body>
+
+<div class="pad">
+  <h2>Scroll down</h2>
+  <p>Wireframe technical illustration, driven by anime.js. Same approach as the reference, different subject.</p>
+</div>
+
+<div id="rig">
+  <div id="stage">
+    <div id="hd">
+      <span class="step" id="c-step">01 / 05</span>
+      <h3 id="c-h">The complete board specification</h3>
+      <p id="c-p">Every carton is a stack of kraft layers. What you order is decided entirely by what goes in that stack.</p>
+    </div>
+
+    <svg id="art" viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet"
+         role="img" aria-labelledby="art-t"><title id="art-t">Exploded wireframe of corrugated board, showing flat kraft liners bonded either side of a fluted medium.</title></svg>
+
+    <ol id="mlist"></ol>
+
+    <div id="inst">
+      <div class="top"><span>Board specification</span><b id="i-ply">3 PLY</b></div>
+      <div class="rows">
+        <div class="rw"><span>Construction</span><span id="i-con">Single wall</span></div>
+        <div class="rw"><span>Bursting strength</span><span id="i-bs">6–8 kg/cm²</span></div>
+        <div class="rw"><span>Load capacity</span><span id="i-load">10 kg</span></div>
+        <div class="rw"><span>Minimum order</span><span>500 boxes</span></div>
+      </div>
+      <div id="ruler"></div>
+    </div>
+
+    <div class="hint" id="hint">▼ Keep scrolling</div>
+  </div>
+</div>
+
+<div class="pad">
+  <h2>Sequence complete</h2>
+  <p>Hands off into the box-type grid.</p>
+</div>
+
+<script>
+/* ---------------- geometry — ported verbatim, unchanged ---------------- */
+const W=300, DX=196, DY=-98, X0=200, YT=250;
+const LT=14, FH=44, PER=50;
+const SPEC=[
+  {t:'l',nm:'OUTER LINER',   sp:'150 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'C-FLUTE · 4.0 MM'},
+  {t:'l',nm:'INNER LINER',   sp:'150 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'C-FLUTE · 4.0 MM'},
+  {t:'l',nm:'MIDDLE LINER',  sp:'180 GSM VIRGIN KRAFT'},
+  {t:'f',nm:'FLUTED MEDIUM', sp:'B-FLUTE · 3.0 MM'},
+  {t:'l',nm:'BASE LINER',    sp:'180 GSM VIRGIN KRAFT'}
+];
+const H=i=>SPEC[i].t==='l'?LT:FH;
+const Y=[]; {let a=YT; for(let i=0;i<7;i++){Y.push(a);a+=H(i);}}
+
+function wave(y,amp,xo,yo){
+  let d=`M${X0+xo} ${y+yo}`;
+  for(let x=0;x<W;x+=PER){
+    d+=` Q${X0+x+PER*.25+xo} ${y-amp+yo} ${X0+x+PER*.5+xo} ${y+yo}`;
+    d+=` Q${X0+x+PER*.75+xo} ${y+amp+yo} ${X0+x+PER+xo} ${y+yo}`;
+  }
+  return d;
+}
+function linerSVG(i){
+  const y=Y[i],h=LT;
+  return `
+  <path class="hair" d="M${X0} ${y} L${X0+W} ${y} L${X0+W+DX} ${y+DY} L${X0+DX} ${y+DY} Z"/>
+  <path class="hair" d="M${X0} ${y} L${X0} ${y+h} L${X0+W} ${y+h} L${X0+W} ${y}"/>
+  <path class="hair" d="M${X0+W} ${y+h} L${X0+W+DX} ${y+h+DY} L${X0+W+DX} ${y+DY}"/>
+  <path class="hair faint" d="M${X0+DX} ${y+DY} L${X0+DX} ${y+DY+h} L${X0+W+DX} ${y+DY+h}"/>`;
+}
+function fluteSVG(i){
+  const y=Y[i],h=FH,amp=(h-10)/2,t=4,mid=y+h/2;
+  let d=`<path class="hair hair-2" d="${wave(mid-t/2,amp,0,0)}"/>
+         <path class="hair hair-2" d="${wave(mid+t/2,amp,0,0)}"/>
+         <path class="hair faint" d="${wave(mid-t/2,amp,DX,DY)}"/>`;
+  for(let x=0;x<=W;x+=PER/2){
+    const k=(x/PER)*Math.PI*2;
+    const py=mid-t/2-Math.sin(k)*amp;
+    d+=`<path class="hair faint" d="M${X0+x} ${py} L${X0+x+DX} ${py+DY}"/>`;
+  }
+  d+=`<path class="hair" d="M${X0} ${mid-t/2} L${X0} ${mid+t/2}"/>
+      <path class="hair" d="M${X0+W} ${mid-t/2} L${X0+W} ${mid+t/2}"/>`;
+  return d;
+}
+
+/* ---------------- build ---------------- */
+const art=document.getElementById('art');
+const LBX=880;
+let s=art.innerHTML;                       // keep the <title> for screen readers
+for(let i=6;i>=0;i--) s+=`<g class="lyr" id="L${i}">${SPEC[i].t==='l'?linerSVG(i):fluteSVG(i)}</g>`;
+for(let i=0;i<7;i++){
+  s+=`<g class="cg" id="C${i}">
+        <path class="lead" id="P${i}" d=""/>
+        <circle id="D${i}" class="hair" r="2.2" cx="0" cy="0" fill="var(--ink)"/>
+        <text class="lt" id="T${i}" x="${LBX}" y="0">${SPEC[i].nm}</text>
+        <text class="ls" id="S${i}" x="${LBX}" y="0">${SPEC[i].sp}</text>
+      </g>`;
+}
+art.innerHTML=s;
+
+const $=id=>document.getElementById(id);
+const L=[...Array(7)].map((_,i)=>$('L'+i));
+const C=[...Array(7)].map((_,i)=>$('C'+i));
+const P=[...Array(7)].map((_,i)=>$('P'+i));
+const D=[...Array(7)].map((_,i)=>$('D'+i));
+const T=[...Array(7)].map((_,i)=>$('T'+i));
+const S=[...Array(7)].map((_,i)=>$('S'+i));
+
+const ruler=$('ruler');
+ruler.innerHTML=Array.from({length:22},()=>'<i></i>').join('');
+const ticks=[...ruler.children];
+
+const tot=n=>{let a=0;for(let i=0;i<n;i++)a+=H(i);return a};
+const CEN={3:(tot(7)-tot(3))/2,5:(tot(7)-tot(5))/2,7:0};
+
+const COPY=[
+  ['01 / 05','The complete board specification','Every carton is a stack of kraft layers. What you order is decided entirely by what goes in that stack.'],
+  ['02 / 05','Three layers. 3 ply.','Two flat kraft liners bonded either side of one fluted medium. Standard board for apparel, light e-commerce and bakery.'],
+  ['03 / 05','The flute carries the load.','Liners hold shape. The fluted medium is what resists crushing when cartons are stacked six high in a delivery van.'],
+  ['04 / 05','Add a flute. 5 ply.','A second fluted layer roughly doubles stacking strength. This is the board for FMCG, transit and warehoused stock.'],
+  ['05 / 05','Three flutes. 7 ply.','Triple wall, for machinery and export loads to 50 kg. Heavier than most orders need, and we will say so.']
+];
+const READ=[
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'3 PLY',c:'Single wall',b:'6–8 kg/cm²',l:'10 kg'},
+  {p:'5 PLY',c:'Double wall',b:'10–14 kg/cm²',l:'25 kg'},
+  {p:'7 PLY',c:'Triple wall',b:'16–20 kg/cm²',l:'50 kg'}
+];
+
+let cur=-1;
+function beat(n){
+  if(n===cur)return; cur=n;
+  const c=COPY[n], r=READ[n];
+  $('c-step').textContent=c[0]; $('c-h').textContent=c[1]; $('c-p').textContent=c[2];
+  $('i-ply').textContent=r.p; $('i-con').textContent=r.c;
+  $('i-bs').textContent=r.b;  $('i-load').textContent=r.l;
+}
+
+/* Leader lines recomputed as layers move. This is the SOLE writer of callout
+   opacity — the highlight dim is folded in, so nothing overwrites it per frame. */
+function leaders(n,offset,alpha,hl){
+  const ys=[]; const top=170, bot=560;
+  for(let i=0;i<n;i++) ys.push(top+(bot-top)*(n===1?.5:i/(n-1)));
+  const mid=(n-1)/2;
+  for(let i=0;i<7;i++){
+    if(i>=n){ C[i].style.opacity='0'; continue; }
+    const ly=Y[i]+H(i)/2+CEN[n]+(i-mid)*offset+DY;
+    const lx=X0+W+DX;
+    const ty=ys[i];
+    P[i].setAttribute('d',`M${lx} ${ly} L${lx+70} ${ty} L${LBX-16} ${ty}`);
+    D[i].setAttribute('cx',lx); D[i].setAttribute('cy',ly);
+    T[i].setAttribute('y',ty-2);
+    S[i].setAttribute('y',ty+13);
+    C[i].style.opacity = SPEC[i].t==='f' ? alpha : alpha*(1-hl*.75);
+  }
+}
+
+/* ---------- static labelled diagram: mobile + reduced motion ---------- */
+function renderStatic(ply){
+  document.body.classList.add('static');
+  beat(ply===7?4:ply===5?3:1);
+  const mid=(ply-1)/2, ex=58;
+  for(let i=0;i<7;i++){
+    L[i].style.display = i<ply?'':'none';
+    if(i<ply) L[i].setAttribute('transform',`translate(0 ${CEN[ply]+(i-mid)*ex})`);
+  }
+  /* Frame the artwork only. The in-SVG label column is illegible at 375px,
+     so labels move to real HTML text below the diagram. */
+  art.setAttribute('viewBox','150 120 640 470');
+  $('mlist').innerHTML = SPEC.slice(0,ply).map(x=>
+    `<li class="${x.t==='f'?'fl':''}"><span class="mhead"><i></i><b>${x.nm}</b></span><span>${x.sp}</span></li>`
+  ).join('');
+  ticks.forEach((t,i)=>t.classList.toggle('a',i<Math.round(ticks.length*.5)));
+}
+
+/* ---------------- run mode ---------------- */
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wide    = matchMedia('(min-width: 900px)').matches;
+
+if(reduced || !wide){
+  /* SPEC §6: below 900px do not run the sequence — and never fetch the library. */
+  renderStatic(3);
+}else{
+  import('https://cdn.jsdelivr.net/npm/animejs@4/+esm').then(({createTimeline,onScroll,utils})=>{
+    const st={ex:0,rot:0,sc:1,beat:0,hl:0};
+    let lastPly=-1,lastTick=-1,lastHl=-1,liveOn=false;
+
+    function render(prog){
+      const b=Math.round(st.beat);
+      const ply=b>=4?7:b===3?5:3;
+      if(ply!==lastPly){
+        lastPly=ply;
+        for(let i=0;i<7;i++) L[i].style.display=i<ply?'':'none';
+      }
+      beat(b);
+      utils.set(art,{rotate:st.rot,scale:st.sc});
+      const mid=(ply-1)/2;
+      for(let i=0;i<ply;i++) utils.set(L[i],{translateY:CEN[ply]+(i-mid)*st.ex});
+
+      const hl=st.hl;
+      if((hl>.5)!==(lastHl>.5)){
+        lastHl=hl;
+        for(let i=0;i<7;i++) if(SPEC[i].t==='f'){
+          L[i].classList.toggle('on',hl>.5);
+          C[i].classList.toggle('on',hl>.5);
+        }
+      }
+      for(let i=0;i<ply;i++) if(SPEC[i].t==='l') utils.set(L[i],{opacity:1-hl*.7});
+
+      leaders(ply,st.ex,Math.min(1,Math.max(0,(st.ex-14)/34)),hl);
+
+      const ti=Math.round(prog*(ticks.length-1));
+      if(ti!==lastTick){
+        if(lastTick>=0) ticks[lastTick].classList.remove('a');
+        if(ticks[ti]) ticks[ti].classList.add('a');
+        lastTick=ti;
+      }
+      $('hint').style.opacity = prog>.04?'0':'1';
+
+      /* hold compositor layers only while actually scrubbing */
+      const want = prog>.001 && prog<.995;
+      if(want!==liveOn){ liveOn=want; document.body.classList.toggle('live',want); }
+    }
+
+    const tl=createTimeline({
+      autoplay:false,
+      defaults:{ease:'inOutQuad'},
+      onUpdate:self=>render(self.progress||0)
+    });
+
+    /* Beats use .set() so they resolve correctly scrubbing in BOTH directions.
+       These were .call() side effects before, which never reverted on scroll-up. */
+    tl
+    .set(st,{beat:0},0)
+    .add(st,{rot:[-3,0],sc:[.86,1],ex:0,duration:700},0)
+    .set(st,{beat:1},700)
+    .add(st,{ex:[0,66],sc:1.05,duration:800},700)
+    .set(st,{beat:2},1500)
+    .add(st,{sc:1.12,hl:[0,1],duration:500},1500)
+    .set(st,{beat:3},2000)
+    .add(st,{hl:[1,0],duration:200},2000)
+    .add(st,{ex:[0,58],sc:1,duration:800},2000)
+    .set(st,{beat:4},2800)
+    .add(st,{ex:[0,48],sc:.9,rot:2,duration:900},2800);
+
+    /* `container: window` threw inside getComputedStyle and the catch below
+       swallowed it, silently forcing the static fallback on every load. Omit it. */
+    onScroll({target:'#rig',axis:'y',enter:'top top',leave:'bottom bottom',sync:.13}).link(tl);
+
+    render(0);
+  }).catch(err=>{
+    console.error('[board] anime.js failed to load, using static diagram:',err);
+    renderStatic(3);
+  });
+}
+</script>
+</body>
+</html>
