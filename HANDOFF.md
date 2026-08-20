@@ -137,6 +137,13 @@ value now is scaffolding Next.js 15 + Tailwind with the SPEC §3 tokens and gett
 `PHONE`, `WHATSAPP`, `EMAIL`, `GSTIN` are still `TODO` in SPEC §0, and the whole
 BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they land.
 
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Scaffolded Next.js 15 App Router with Tailwind v4, next/font typography, typed content, responsive header/footer, mobile sticky call/quote bar, homepage, quote wizard, contact page, box hub/detail routes, about, process, works, LocalBusiness JSON-LD, Product JSON-LD, sitemap and robots.
+**Files:** package.json, package-lock.json, next.config.ts, tsconfig.json, postcss.config.mjs, tailwind.config.ts, app/, components/, content/, .env.example.
+**Verified how:** `npm install` completed. `npm run build` completed successfully with 20 static routes. `Invoke-WebRequest` returned HTTP 200 for `/` and `/quote`. The dev server is running at `http://localhost:3000`.
+**Left broken:** Supabase project/table and env vars are not provisioned. PHONE, WHATSAPP, EMAIL and GSTIN remain visibly marked unverified. Board wireframe Phase 3 remains deferred. Browser screenshot/a11y audit was not completed because the in-app browser connector was not available in the exposed tool set.
+**For the next agent:** Provision Supabase `quote_requests` with anon INSERT-only RLS, then run the Playwright acceptance checks at 375px and desktop. Keep the placeholder contact/spec values until verified.
+
 <!-- template for the next entry:
 
 ### YYYY-MM-DD · <agent> · IN PROGRESS | DONE | BLOCKED

@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { boxTypes } from "@/content/boxTypes";
+import { SectionIntro } from "@/components/SectionIntro";
+
+export default function BoxesPage() { return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1400px]"><SectionIntro eyebrow="Box formats" title="What do you need to ship?" body="Start with a format. We will size it around your product, packing line and delivery route." /><div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{boxTypes.map((item) => <Link key={item.slug} href={`/boxes/${item.slug}`} className="card focus-ring group bg-paper p-5"><div className="grid aspect-square place-items-center rounded-full border-2 border-ink" style={{ background: item.colour }}><span className="mono px-6 text-center text-xs font-bold uppercase tracking-[.12em] text-paper">Photo slot</span></div><h2 className="mt-5 text-3xl group-hover:text-ultra">{item.name}</h2><p className="mt-2 text-ink-soft">{item.description}</p><span className="mt-5 inline-block font-bold underline underline-offset-4">View format</span></Link>)}</div></div></div>; }
