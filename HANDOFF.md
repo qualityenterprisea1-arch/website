@@ -189,3 +189,9 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **For the next agent:**
 
 -->
+
+### 2026-08-20 · GPT-5.6 · DONE
+**Did:** Installed the reviewed third-party `seo` skill from `affaan-m/ECC` into `C:\Users\001sa\.codex\skills\seo`; the source contains only `SKILL.md` and no companion files. Added mobile-safe footer spacing and removed dead pending-contact action links. Replaced the mobile board fallback with three deterministic horizontal scroll-snap panels for 3 ply, 5 ply and 7 ply while preserving the desktop anime.js scrub. Added reusable canonical/OG/Twitter metadata, unique metadata for public routes, FAQPage and BreadcrumbList schema, product schema without fabricated offers, and a truthful Organization/LocalBusiness schema without pending phone/email/GSTIN values. Updated robots and sitemap priorities.
+**Files:** `components/Footer.tsx`, `components/MobileBar.tsx`, `components/BoardConstruction.tsx`, `app/globals.css`, `content/seo.ts`, `content/faq.ts`, route metadata/schema files, `app/robots.ts`, `app/sitemap.ts`.
+**Verified how:** `npm run build` passes and prerenders all 32 routes. Static audit confirms the old 500-unit title and removed hero eyebrow are absent; pending contact values are not emitted in JSON-LD. The in-app browser connector was unavailable, so a live 375px screenshot/sweep could not be completed.
+**Left broken:** Browser-driven visual verification remains outstanding. Phone, WhatsApp, email and GSTIN remain intentionally unverified. About Us content was not changed.

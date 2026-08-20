@@ -61,6 +61,12 @@ function layerMarkup(index: number) {
   return <g className="board-layer" data-layer-index={index} key={`layer-${index}`}><path className="board-hair board-hair-strong" d={wave(mid - 2, amplitude)} /><path className="board-hair board-hair-strong" d={wave(mid + 2, amplitude)} /><path className="board-hair board-faint" d={wave(mid - 2, amplitude, DX, DY)} />{points.map((x) => { const angle = (x / PERIOD) * Math.PI * 2; const yPoint = mid - 2 - Math.sin(angle) * amplitude; return <path className="board-hair board-faint" key={x} d={`M${X0 + x} ${yPoint} L${X0 + x + DX} ${yPoint + DY}`} />; })}<path className="board-hair" d={`M${X0} ${mid - 2} L${X0} ${mid + 2}`} /><path className="board-hair" d={`M${X0 + W} ${mid - 2} L${X0 + W} ${mid + 2}`} /></g>;
 }
 
+function mobilePanel(ply: 3 | 5 | 7, title: string, body: string) {
+  const middle = (ply - 1) / 2;
+  const reading = READINGS[ply === 3 ? 1 : ply === 5 ? 3 : 4];
+  return <article className="board-mobile-panel" key={ply} aria-labelledby={`board-mobile-${ply}-title`}><span className="board-step">{ply} PLY / BOARD BUILD</span><h3 id={`board-mobile-${ply}-title`}>{title}</h3><p>{body}</p><svg viewBox="150 120 640 470" role="img" aria-label={`${ply} ply corrugated board diagram`}><title>{ply} ply corrugated board</title>{Array.from({ length: ply }, (_, index) => <g key={index} transform={`translate(0 ${centerOffset[ply] + (index - middle) * 58})`}>{layerMarkup(index)}</g>)}</svg><div className="board-mobile-reading"><div><span>Construction</span><b>{reading[1]}</b></div><div><span>Strength</span><b>{reading[2]}</b></div><div><span>Typical use</span><b>{ply === 3 ? "Everyday dispatch" : ply === 5 ? "Transit and storage" : "Heavy freight"}</b></div><div><span>Load guide</span><b>{reading[3]}</b></div></div></article>;
+}
+
 export default function BoardConstruction() {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -76,8 +82,8 @@ export default function BoardConstruction() {
     const strength = element.querySelector<HTMLElement>("[data-board-strength]");
     const load = element.querySelector<HTMLElement>("[data-board-load]");
     const ticks = [...element.querySelectorAll<HTMLElement>("[data-board-tick]")];
-    const layers = [...element.querySelectorAll<SVGGElement>(".board-layer")].sort((a, b) => Number(a.dataset.layerIndex) - Number(b.dataset.layerIndex));
-    const callouts = [...element.querySelectorAll<SVGGElement>(".board-callout")];
+    const layers = art ? [...art.querySelectorAll<SVGGElement>(".board-layer")].sort((a, b) => Number(a.dataset.layerIndex) - Number(b.dataset.layerIndex)) : [];
+    const callouts = art ? [...art.querySelectorAll<SVGGElement>(".board-callout")] : [];
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const wide = window.matchMedia("(min-width: 900px)").matches;
     let observer: { revert?: () => unknown } | undefined;
@@ -103,7 +109,8 @@ export default function BoardConstruction() {
       if (list) { list.innerHTML = SPEC.slice(0, staticPly).map((item) => `<li class="${item.type === "flute" ? "is-flute" : ""}"><span><i></i><b>${item.name}</b></span><small>${item.spec}</small></li>`).join(""); }
       ticks.forEach((tick, index) => tick.classList.toggle("is-active", index < Math.round(ticks.length * 0.5)));
     };
-    if (reduced || !wide) { staticRender(3); return () => undefined; }
+    if (!wide) return () => undefined;
+    if (reduced) { staticRender(3); return () => undefined; }
 
     let cancelled = false;
     import("animejs").then(({ createTimeline, onScroll }) => {
@@ -189,5 +196,5 @@ export default function BoardConstruction() {
     return () => { cancelled = true; cleanupObserver?.(); };
   }, []);
 
-  return <section ref={root} className="board-section"><div className="board-rig"><div className="board-stage"><div className="board-heading"><span className="board-step" data-board-step>01 / 05</span><h2 data-board-heading>The complete board specification</h2><p data-board-paragraph>Every carton is a stack of kraft layers. What you order is decided by what goes in that stack.</p></div><svg data-board-art viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="board-art-title"><title id="board-art-title">Exploded wireframe of corrugated board showing kraft liners and fluted medium.</title>{[6, 5, 4, 3, 2, 1, 0].map((index) => layerMarkup(index))}{SPEC.map((item, index) => <g className="board-callout" key={`callout-${index}`}><path className="board-leader" d="" /><circle className="board-dot" r="2.2" cx="0" cy="0" /><text className="board-label" x="880" y="0">{item.name}</text><text className="board-sub-label" x="880" y="0">{item.spec}</text></g>)}</svg><ol data-board-list className="board-mobile-list" /><div className="board-instrument"><div className="board-instrument-top"><span>Board specification</span><b data-board-ply>3 PLY</b></div><div className="board-instrument-rows"><div><span>Construction</span><span data-board-construction>Single wall</span></div><div><span>Bursting strength</span><span data-board-strength>6-8 kg/cm²</span></div><div><span>Load capacity</span><span data-board-load>10 kg</span></div><div><span>Minimum order</span><span>500 boxes</span></div></div><div className="board-ruler">{Array.from({ length: 22 }, (_, index) => <i data-board-tick key={index} />)}</div></div></div></div></section>;
+  return <section ref={root} className="board-section"><div className="board-rig"><div className="board-stage"><div className="board-heading"><span className="board-step" data-board-step>01 / 05</span><h2 data-board-heading>The complete board specification</h2><p data-board-paragraph>Every carton is a stack of kraft layers. What you order is decided by what goes in that stack.</p></div><svg data-board-art viewBox="0 0 1100 720" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="board-art-title"><title id="board-art-title">Exploded wireframe of corrugated board showing kraft liners and fluted medium.</title>{[6, 5, 4, 3, 2, 1, 0].map((index) => layerMarkup(index))}{SPEC.map((item, index) => <g className="board-callout" key={`callout-${index}`}><path className="board-leader" d="" /><circle className="board-dot" r="2.2" cx="0" cy="0" /><text className="board-label" x="880" y="0">{item.name}</text><text className="board-sub-label" x="880" y="0">{item.spec}</text></g>)}</svg><ol data-board-list className="board-mobile-list" /><div className="board-instrument"><div className="board-instrument-top"><span>Board specification</span><b data-board-ply>3 PLY</b></div><div className="board-instrument-rows"><div><span>Construction</span><span data-board-construction>Single wall</span></div><div><span>Bursting strength</span><span data-board-strength>6-8 kg/cm²</span></div><div><span>Load capacity</span><span data-board-load>10 kg</span></div><div><span>Minimum order</span><span>500 boxes</span></div></div><div className="board-ruler">{Array.from({ length: 22 }, (_, index) => <i data-board-tick key={index} />)}</div></div></div><div className="board-mobile-sequence" aria-label="Corrugated board constructions">{mobilePanel(3, "Three layers. 3 ply.", "Two flat liners bonded either side of one fluted medium for light cartons and everyday dispatch.")}{mobilePanel(5, "Add a flute. 5 ply.", "A second fluted layer adds stacking strength for transit, storage and heavier stock.")}{mobilePanel(7, "Three flutes. 7 ply.", "Triple wall for machinery, industrial loads and demanding freight where extra protection matters.")}</div></div></section>;
 }
