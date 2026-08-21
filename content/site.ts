@@ -10,7 +10,7 @@ export const site = {
   area: "IDA Mallapur",
   phone: "+91 94404 32434",
   phoneHref: "tel:+919440432434",
-  email: "qualityenterprisesa1@gmail.com",
+  email: "qualityenterprisea1@gmail.com",
   emailAlt: "quality-enterprises@outlook.com",
   /* <!-- UNVERIFIED --> */ gstin: "GSTIN pending",
   hours: "Mon-Sat, 9:30-18:30",

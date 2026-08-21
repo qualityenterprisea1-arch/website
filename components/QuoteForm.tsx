@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { boxTypes } from "@/content/boxTypes";
-import deliveryAreas from "@/content/deliveryAreas.json";
 import { site } from "@/content/site";
 
 /* One screen, not a wizard. The six-step flow made a buyer click Next five times
@@ -15,13 +14,13 @@ const field = "focus-ring mt-2 w-full rounded-md border border-line bg-white px-
 
 type Answers = {
   boxType: string; length: string; width: string; height: string; unit: "mm" | "in";
-  ply: string; quantity: string; printing: string; location: string; outsideArea: string;
+  ply: string; quantity: string; printing: string;
   name: string; phone: string; company: string; email: string; website: string;
 };
 
 const initial: Answers = {
   boxType: "", length: "", width: "", height: "", unit: "mm", ply: "3 ply", quantity: "500",
-  printing: "None", location: "", outsideArea: "", name: "", phone: "", company: "", email: "", website: "",
+  printing: "None", name: "", phone: "", company: "", email: "", website: "",
 };
 
 export function QuoteForm() {
@@ -38,8 +37,6 @@ export function QuoteForm() {
     if (match) setA((prev) => ({ ...prev, boxType: match.name }));
   }, []);
 
-  const selectedLocation = deliveryAreas.locations.find((item) => item.value === a.location);
-
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (Number(a.quantity) < MOQ) { setError(`Minimum order is ${MOQ} boxes.`); return; }
@@ -48,7 +45,6 @@ export function QuoteForm() {
     const payload = {
       box_type: a.boxType, length: a.length, width: a.width, height: a.height, unit: a.unit,
       ply: a.ply, quantity: Number(a.quantity), printing: a.printing,
-      location: a.location, outside_area: a.outsideArea,
       name: a.name, phone: a.phone, company: a.company, email: a.email,
       website: a.website, // honeypot
     };
@@ -64,7 +60,7 @@ export function QuoteForm() {
   if (status === "sent") return <div className="card p-7">
     <div className="eyebrow">Request received</div>
     <h2 className="mt-4 text-2xl">We will come back within {site.quoteSla}.</h2>
-    <p className="mt-4 text-ink-soft">Your request is with the factory team. We have the format, size, ply, quantity, printing and delivery area, and will reply with a written specification and price.</p>
+    <p className="mt-4 text-ink-soft">Your request is with the factory team. We have the format, size, ply, quantity and printing, and will reply with a written specification and price.</p>
     <Link href="/" className="pill focus-ring mt-7 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Back to home</Link>
   </div>;
 
@@ -110,20 +106,6 @@ export function QuoteForm() {
           {["None", "1 colour", "2 colour", "Full colour"].map((v) => <option key={v} value={v}>{v}</option>)}
         </select>
       </label>
-
-      <label className="label-stack eyebrow">Delivery area *
-        <select required value={a.location} onChange={(e) => { set("location", e.target.value); set("outsideArea", ""); }} className={field}>
-          <option value="">Choose an area</option>
-          {deliveryAreas.locations.map((location) => <option key={location.value} value={location.value}>
-            {location.requiresDetail ? location.city : `${location.area}, ${location.city}`}
-          </option>)}
-        </select>
-      </label>
-
-      {selectedLocation?.requiresDetail && <label className="label-stack eyebrow sm:col-span-2">City or delivery area outside Hyderabad *
-        <input required maxLength={120} value={a.outsideArea} onChange={(e) => set("outsideArea", e.target.value)} autoComplete="address-level2" className={field} />
-        <span className="mt-2 block font-sans text-xs font-normal normal-case tracking-normal text-ink-soft">We do not serve this area today, but we will keep the request for delivery planning.</span>
-      </label>}
 
       {([
         { key: "name", label: "Your name", required: true, type: "text", autoComplete: "name" },

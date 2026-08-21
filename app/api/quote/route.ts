@@ -21,18 +21,23 @@ const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice
 type Row = {
   box_type: string; length: string; width: string; height: string; unit: "mm" | "in";
   ply: string; quantity: number; printing: string;
-  city: string; area: string;
+  city: string | null; area: string | null;
   name: string; phone: string; company: string | null; email: string | null;
 };
 
 function parse(body: Record<string, unknown>): Row | string {
   const quantity = Number(body.quantity);
   const unit = body.unit === "in" ? "in" : "mm";
+  /* Delivery area was dropped from the public form - it was one more field
+     between a buyer and a submitted spec, and the area is a question for the
+     call. It is still accepted so an existing integration keeps working, and
+     still validated against the known list when supplied, but a request
+     without one is no longer rejected. */
   const locationKey = str(body.location, 120);
-  const location = deliveryAreas.locations.find((item) => item.value === locationKey);
+  const location = locationKey ? deliveryAreas.locations.find((item) => item.value === locationKey) : undefined;
   const outsideArea = str(body.outside_area, 120);
-  if (!location) return "Choose a delivery area.";
-  if (location.requiresDetail && outsideArea.length < 2) return "Enter the city or delivery area outside Hyderabad.";
+  if (locationKey && !location) return "Choose a delivery area.";
+  if (location?.requiresDetail && outsideArea.length < 2) return "Enter the city or delivery area outside Hyderabad.";
   const row: Row = {
     box_type: str(body.box_type, 120),
     length: str(body.length, 20), width: str(body.width, 20), height: str(body.height, 20),
@@ -40,8 +45,8 @@ function parse(body: Record<string, unknown>): Row | string {
     ply: str(body.ply, 40),
     quantity,
     printing: str(body.printing, 40),
-    city: location.city,
-    area: location.requiresDetail ? outsideArea : location.area,
+    city: location ? location.city : null,
+    area: location ? (location.requiresDetail ? outsideArea : location.area) : null,
     name: str(body.name, 120),
     phone: str(body.phone, 40),
     company: str(body.company, 160) || null,
@@ -65,7 +70,7 @@ async function notify(row: Row) {
     ["Ply", row.ply || "Not given"],
     ["Quantity", `${row.quantity} boxes`],
     ["Printing", row.printing || "Not given"],
-    ["Delivery", `${row.area}, ${row.city}`],
+    ["Delivery", row.area || row.city ? `${row.area || ""}${row.area && row.city ? ", " : ""}${row.city || ""}` : "Ask on the call"],
     ["Name", row.name],
     ["Phone", row.phone],
     ["Company", row.company || "Not given"],
