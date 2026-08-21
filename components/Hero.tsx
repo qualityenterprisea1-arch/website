@@ -14,30 +14,32 @@ const stats: [string, string][] = [
    rule, eyebrow, headline lines, sub, buttons, then the strip underneath. */
 export function Hero() {
   return <section className="hero">
-    <div className="hero-media aspect-[5/4] lg:aspect-auto">
+    <div className="hero-media">
       <div className="hero-float">
         <Image src="/images/process/hero.avif" alt="Freshly corrugated kraft board stacked on the factory floor" fill priority sizes="(max-width: 1024px) 100vw, 58vw" className="hero-reveal" />
       </div>
       <span className="hero-sheen" aria-hidden="true" />
     </div>
 
-    <div className="relative z-[4] mx-auto w-full max-w-[1400px] px-5 pb-14 pt-16 md:px-10 md:pb-20 md:pt-24 lg:min-h-[min(88vh,800px)] lg:pb-28 lg:pt-36">
+    {/* Copy is pinned to the bottom of the frame on mobile so both buttons clear
+        the fold; on desktop it returns to a normal top-aligned column. */}
+    <div className="relative z-[4] mx-auto flex min-h-[78svh] w-full max-w-[1400px] flex-col justify-end px-5 pb-10 pt-24 md:px-10 md:pb-14 lg:block lg:min-h-[min(88vh,800px)] lg:pb-28 lg:pt-36">
       <div className="max-w-[36rem] lg:max-w-[34rem]">
-        <span className="hero-rule mb-7 block h-px w-16 bg-kraft" style={{ animationDelay: "80ms" }} aria-hidden="true" />
+        <span className="hero-rule mb-5 block h-px w-14 bg-kraft md:mb-7 md:w-16" style={{ animationDelay: "80ms" }} aria-hidden="true" />
         <div className="eyebrow hero-rise !text-kraft" style={{ animationDelay: "160ms" }}>Corrugated packaging &middot; Narsingi, Hyderabad</div>
 
-        <h1 className="mt-6 text-[clamp(2.6rem,5.6vw,4.4rem)]">
+        <h1 className="mt-4 text-[clamp(2.35rem,5.6vw,4.4rem)] md:mt-6">
           <span className="hero-line"><span style={{ animationDelay: "260ms" }}>Packaging built</span></span>
           <span className="hero-line"><span style={{ animationDelay: "360ms" }}>for business.</span></span>
         </h1>
 
-        <p className="hero-rise mt-7 max-w-lg text-lg text-paper/70" style={{ animationDelay: "520ms" }}>
+        <p className="hero-rise mt-5 max-w-lg text-paper/70 md:mt-7 md:text-lg" style={{ animationDelay: "520ms" }}>
           Shipping cartons, mailers, storage boxes and protective formats for procurement, warehouse and operations teams.
         </p>
 
-        <div className="hero-rise mt-9 flex flex-wrap items-center gap-3" style={{ animationDelay: "640ms" }}>
-          <Link href="/quote" className="pill focus-ring bg-paper px-7 py-3.5 font-semibold text-ink hover:bg-kraft">Request a quote</Link>
-          <Link href="/boxes" className="pill focus-ring border border-paper/30 px-7 py-3.5 font-semibold text-paper hover:border-paper/70">See what we make</Link>
+        <div className="hero-rise mt-7 grid gap-3 sm:flex sm:flex-wrap sm:items-center md:mt-9" style={{ animationDelay: "640ms" }}>
+          <Link href="/quote" className="pill focus-ring bg-paper px-7 py-3.5 text-center font-semibold text-ink hover:bg-kraft">Request a quote</Link>
+          <Link href="/boxes" className="pill focus-ring border border-paper/30 px-7 py-3.5 text-center font-semibold text-paper hover:border-paper/70">See what we make</Link>
         </div>
       </div>
     </div>

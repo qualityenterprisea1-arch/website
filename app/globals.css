@@ -78,16 +78,21 @@
   .hero { position: relative; isolation: isolate; overflow: hidden; background: linear-gradient(150deg, #17140F 0%, #100E0B 46%, #1A1611 100%); color: var(--paper); }
   .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(52% 48% at 72% 42%, rgb(196 150 92 / .16), transparent 74%); }
 
-  .hero-media { position: relative; overflow: hidden; }
-  .hero-media img { object-fit: cover; object-position: 62% 50%; }
+  /* Mobile: one full-bleed frame with the copy sitting on a scrim at the bottom.
+     Stacking the photo above a separate dark panel left a hard seam, dead space
+     between the two, and pushed both buttons below the fold. */
+  .hero-media { position: absolute; inset: 0; overflow: hidden; }
+  .hero-media img { object-fit: cover; object-position: 62% 62%; }
+  .hero-media::before { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, rgb(16 14 11 / .34) 0%, rgb(16 14 11 / .18) 22%, rgb(16 14 11 / .62) 58%, rgb(16 14 11 / .9) 82%, #100E0B 100%); }
   .hero-float { position: absolute; inset: -3%; animation: hero-float 12s ease-in-out infinite alternate; }
   @keyframes hero-float { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(0, -14px, 0) scale(1.02); } }
 
   @media (min-width: 1024px) {
-    /* Photograph bleeds to the viewport edge and dissolves into the ground.
-       Its own left side is already deep shadow, so the blend is seamless. */
-    .hero-media { position: absolute; inset: 0 0 0 auto; width: 56%; }
-    .hero-media::before { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, #100E0B 0%, rgb(16 14 11 / .92) 18%, rgb(16 14 11 / .45) 42%, rgb(16 14 11 / .05) 74%, transparent 90%); }
+    /* Desktop: photograph bleeds to the right edge and dissolves sideways into
+       the ground. Its own left side is already deep shadow, so the blend is seamless. */
+    .hero-media { inset: 0 0 0 auto; width: 56%; }
+    .hero-media img { object-position: 62% 50%; }
+    .hero-media::before { background: linear-gradient(90deg, #100E0B 0%, rgb(16 14 11 / .92) 18%, rgb(16 14 11 / .45) 42%, rgb(16 14 11 / .05) 74%, transparent 90%); }
     .hero-media::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(0deg, rgb(16 14 11 / .7) 0%, transparent 26%); }
   }
 

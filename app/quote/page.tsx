@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { boxTypes } from "@/content/boxTypes";
 import { site } from "@/content/site";
 
-type Answers = { boxType: string; length: string; width: string; height: string; unit: "mm" | "in"; ply: string; quantity: string; printing: string; name: string; phone: string; company: string; email: string };
-const initial: Answers = { boxType: "", length: "", width: "", height: "", unit: "mm", ply: "", quantity: "500", printing: "", name: "", phone: "", company: "", email: "" };
+type Answers = { boxType: string; length: string; width: string; height: string; unit: "mm" | "in"; ply: string; quantity: string; printing: string; name: string; phone: string; company: string; email: string; website: string };
+const initial: Answers = { boxType: "", length: "", width: "", height: "", unit: "mm", ply: "", quantity: "500", printing: "", name: "", phone: "", company: "", email: "", website: "" };
 
 const MOQ = 500;
 const field = "focus-ring mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 text-base outline-none transition-colors focus:border-ink";
@@ -27,14 +27,9 @@ export default function QuotePage() {
     return !!answers.name.trim() && !!answers.phone.trim();
   }, [answers, step]);
 
-  // A failed write must surface. Reporting success on a dropped request loses the lead silently.
+  // A failed write must surface. Reporting success on a dropped request loses the lead.
   const submit = async () => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) { setStatus("failed"); return; }
     setStatus("sending");
-    // Column names are snake_case and created_at is left to the database default —
-    // a client-supplied timestamp on a public endpoint is not worth trusting.
     const payload = {
       box_type: answers.boxType,
       length: answers.length, width: answers.width, height: answers.height,
@@ -42,13 +37,12 @@ export default function QuotePage() {
       ply: answers.ply,
       quantity: Number(answers.quantity),
       printing: answers.printing,
-      name: answers.name.trim(),
-      phone: answers.phone.trim(),
-      company: answers.company.trim() || null,
-      email: answers.email.trim() || null,
+      name: answers.name, phone: answers.phone,
+      company: answers.company, email: answers.email,
+      website: answers.website, // honeypot
     };
     try {
-      const res = await fetch(`${url}/rest/v1/quote_requests`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(payload) });
+      const res = await fetch("/api/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       setStatus(res.ok ? "sent" : "failed");
     } catch { setStatus("failed"); }
   };
@@ -117,6 +111,8 @@ export default function QuotePage() {
       ] satisfies { key: keyof Answers; label: string; required: boolean; type: string; autoComplete: string }[]).map((f) => <label key={f.key} className="eyebrow">{f.label}{f.required ? " *" : ""}
         <input required={f.required} type={f.type} autoComplete={f.autoComplete} value={answers[f.key]} onChange={(e) => update(f.key, e.target.value)} className={field} />
       </label>)}</div>
+      {/* Honeypot. Hidden from people and from assistive tech; bots fill it in. */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={answers.website} onChange={(e) => update("website", e.target.value)} className="absolute left-[-9999px] h-px w-px opacity-0" />
     </div>,
   ];
 
