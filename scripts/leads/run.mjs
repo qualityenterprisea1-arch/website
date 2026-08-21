@@ -20,6 +20,7 @@
  */
 
 import { harvest, INDUSTRIES, DISTRICTS } from "./sources/factoriesindia.mjs";
+import { harvestExa } from "./sources/exa.mjs";
 import { enrichSite, normalisePhone, isFreeMail } from "./enrich.mjs";
 import { scoreProspect } from "./score.mjs";
 import { findBuyers } from "./people.mjs";
@@ -42,6 +43,8 @@ const opts = {
   dry: has("dry"),
   reenrich: has("reenrich"),
   quiet: has("quiet"),
+  noExa: has("no-exa"),
+  exaPerQuery: Number(flag("exa-results", "10")),
 };
 
 const log = opts.quiet ? () => {} : (...a) => console.log(...a);
@@ -121,6 +124,15 @@ async function discover() {
     // The state-level index carries plants the district pages miss.
     rows.push(...await harvest({ industry, district: null, maxPages: opts.maxPages, log }));
   }
+  /* The directory is a fixed register and lists what it lists. Exa is unbounded
+     and finds companies by what they make, so the two together cover far more
+     of the market than either alone. Exa rows arrive with no address - the site
+     crawl supplies one, and a prospect with no address is disqualified rather
+     than guessed at. */
+  if (!opts.noExa) {
+    log("[discover] exa company search");
+    rows.push(...await harvestExa({ perQuery: opts.exaPerQuery, log }));
+  }
   log(`[discover] ${rows.length} raw rows -> ${dedupe(rows).length} companies`);
   return dedupe(rows);
 }
@@ -175,7 +187,8 @@ async function buildProspect(row) {
     website_url: row.website_url || `urn:qe:no-website:${encodeURIComponent(row.company_name.toLowerCase())}`,
     city: row.city || "Hyderabad",
     district: row.district || null,
-    address: row.address || row.addresses?.[0] || null,
+    // Exa gives a company and a website, never an address. The site does.
+    address: row.address || row.addresses?.[0] || site.address?.address || null,
     industry: row.industry || null,
     description: null,
     contact_name: best?.name || null,

@@ -3,18 +3,33 @@
 Finds Hyderabad manufacturers who buy corrugated packaging, works out how
 reachable and how close they are, and files them for a human to call.
 
-**It never sends anything.** No email, no message, no form fill. Outreach stays
-behind a person, because a bad send from `send.quality-enterprises.co.in` costs
-the sending reputation that every real quote notification depends on.
+**It never contacts a prospect.** No email, no message, no form fill, ever.
+Outreach stays a human decision, because a bad send from
+`send.quality-enterprises.co.in` costs the sending reputation that every real
+quote notification depends on.
+
+The one thing it does send is the weekly digest, and that goes to Quality
+Enterprises itself — a call sheet to the factory, never a message to a lead.
 
 ```
-discover ──► enrich ──► score ──► store
-   │           │          │         │
-   │           │          │         └─ Supabase outbound_prospects (service role only)
-   │           │          └─ corrugated-buyer model, not SaaS BANT
-   │           └─ the company's own site: phones, emails, named people
-   └─ factoriesindia.net, by industry × district
+discover ──► enrich ──► buyers ──► score ──► store ──► digest
+   │           │          │          │         │          │
+   │           │          │          │         │          └─ weekly email to the factory
+   │           │          │          │         └─ Supabase (service role only)
+   │           │          │          └─ corrugated-buyer model, not SaaS BANT
+   │           │          └─ named purchase managers, current roles only
+   │           └─ the company's own site: address, phones, emails
+   ├─ factoriesindia.net — the licensed factory register, by industry × district
+   └─ Exa company search — segment × area, unbounded
 ```
+
+Two discovery sources on purpose. The register is authoritative but finite —
+about thirty Telangana companies, and no amount of paging finds a thirty-first.
+Exa is unbounded: it asks for the kind of business that buys cartons, in the
+areas worth delivering to, and returns whoever is on the open web. Exa rows
+arrive with a company and a website but no address, so the site crawl supplies
+one; a prospect whose address cannot be found is disqualified rather than
+guessed at, because proximity is 30 of the 100 points.
 
 ## Run it
 
@@ -39,11 +54,33 @@ node scripts/leads/run.mjs --rescore                        # re-score existing 
 | `--limit N` | Stop after N companies — useful when testing |
 | `--dry` | Harvest and score, print, write nothing |
 | `--rescore` | Re-enrich and re-score rows already in the table |
+| `--no-exa` | Directory only — skip Exa discovery |
+| `--exa-results N` | Results per Exa query (default 10) |
 
 Or press **Find new leads** in the dashboard, which runs the same command and
 streams the log into the page.
 
 ## Autonomy
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\leads\install-schedule.ps1
+```
+
+Registers two weekly tasks, deliberately separate so a slow sweep never delays
+the digest and a failed digest never looks like a failed sweep:
+
+| Task | When | Does |
+|---|---|---|
+| `QE lead sweep` | Mon 07:00 | discover, enrich, find buyers, score, store |
+| `QE lead digest` | Mon 09:00 | email the week's grade A and B to the factory |
+
+The digest is the only email this system sends and it goes to Quality
+Enterprises, never to a prospect. It exists so nobody has to remember to open
+the dashboard. Preview it without sending:
+
+```bash
+node --env-file=C:/qe-leads-dashboard/.env scripts/leads/digest.mjs --days 7 --dry
+```
 
 The sweep is idempotent — it upserts on `website_url` and never touches a
 human's `status`, `notes`, `is_verified` or `do_not_contact`. So it is safe to
@@ -140,6 +177,9 @@ node scripts/leads/people.mjs --ingest buyers.json
 | `enrich.mjs` | Phone/email/person extraction from a company's own site |
 | `people.mjs` | Named buying contacts from public professional profiles |
 | `score.mjs` | The corrugated-buyer model, and why each term is weighted as it is |
+| `sources/exa.mjs` | Discovery: company search by segment × area |
+| `digest.mjs` | Weekly email of new A/B leads, to the factory only |
+| `install-schedule.ps1` | Registers the two weekly Windows tasks |
 | `test.mjs` | `node scripts/leads/test.mjs` — asserts the extractors on fixed input |
 
 ## Adding a source

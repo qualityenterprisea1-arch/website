@@ -177,6 +177,36 @@ export function extractPeople(html) {
   return [...out.values()].sort((a, b) => b.authority - a.authority).slice(0, 12);
 }
 
+/* A postal address, needed because proximity is the heaviest term in the score
+   and a prospect without one cannot be judged at all.
+
+   Anchors on the PIN code rather than on words like "address": Indian sites
+   write the address a dozen ways but almost always end it with a six-digit PIN,
+   and the text immediately before it is the address. Telangana PINs are 5xxxxx,
+   so a Telangana PIN is also the strongest single proximity signal on the page. */
+export function extractAddress(html) {
+  const text = textOf(html);
+  const found = [];
+  for (const m of text.matchAll(/\b([1-9]\d{5})\b/g)) {
+    const pin = m[1];
+    // Reject the six-digit runs that are not PINs: phone fragments, years, GSTIN
+    // pieces. A PIN is preceded by an address, not by more digits.
+    const before = text.slice(Math.max(0, m.index - 160), m.index);
+    if (/\d{3}\s*$/.test(before)) continue;
+    // Trim back to something that reads like the start of an address line.
+    /* Do not break on full stops: an Indian address is full of "Plot No.",
+       "Sy. No.", "H.No." and would be shredded. Break on the labels that
+       actually start an address block, and on wide whitespace. */
+    const line = before.split(/\s{2,}|[|•]|(?:regd\.?\s*off(?:ice)?|corporate\s*office|head\s*office|factory|works|unit|plant|address|location)\s*:?\s*/i).pop().trim();
+    const address = `${line} ${pin}`.replace(/\s+/g, " ").replace(/^[^A-Za-z0-9]+/, "").trim();
+    if (address.length < 12) continue;
+    found.push({ address, pin, telangana: /^5[0-9]{5}$/.test(pin) });
+  }
+  // A Telangana address beats a branch office elsewhere; longer beats truncated.
+  found.sort((a, b) => (b.telangana - a.telangana) || (b.address.length - a.address.length));
+  return found[0] || null;
+}
+
 /* The company's own name for itself. The factory directory titles many entries
    by plant ("Plant 1", "Api Hyderabad 3"), which is useless on a call sheet, so
    the homepage gets a say. og:site_name is authored; a <title> is usually
@@ -242,6 +272,7 @@ export async function enrichSite(websiteUrl, { maxPages = 6 } = {}) {
     ok: true,
     domain,
     siteName: siteName(home.html),
+    address: pages.map((pg) => extractAddress(pg.html)).find(Boolean) || null,
     phones: [...phones.values()],
     emails: [...emails.values()].sort((a, b) => b.score - a.score),
     people: [...people.values()].sort((a, b) => b.authority - a.authority),
