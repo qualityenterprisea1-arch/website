@@ -15,21 +15,17 @@ baton means the next agent redoes your work.
 ```
 LAST AGENT     : Claude (Opus 5)
 DATE           : 2026-08-21
-LAST COMMIT    : ae8baae  Add generated catalogue image masters
-BUILD PHASE    : Phases 1-3 built. Design system now shares the board diagram's
-                 spec-sheet register across the whole site.
-WORKING        : Production build passes, 33 routes. Verified against `next start`:
-                 axe-core wcag2a+aa 0 violations on 8 routes, exactly one h1 each,
-                 no failed requests, no console errors. Board scroll sequence verified
-                 at 1440x900; callouts clear the instrument panel.
+LAST COMMIT    : 7a2760e  Fix invisible quote selection, wire real product images
+BUILD PHASE    : Phases 1-3 built. Real catalogue photography live on all 20 products.
+WORKING        : Production build 33 routes. Verified against `next start`: axe-core
+                 wcag2a+aa 0 violations on 8 routes, one h1 each, no failed requests,
+                 no console errors. Quote wizard selection re-tested in-browser.
 BROKEN         : Supabase not provisioned, so /quote shows an explicit FAILURE state on
                  submit instead of silently claiming success. Intended; keep it until
                  quote_requests + RLS exist.
-NEXT ACTION    : (a) Provision Supabase quote_requests with anon INSERT-only RLS and set
-                 NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY, or the form captures nothing.
-                 (b) Wire images/corrugated_catalog_masters into content/boxTypes.ts -
-                 needs a human asset-to-slug mapping and a decision on asset-010's
-                 fabricated INDESTRUCTO brand mark. See SESSION LOG 2026-08-21.
+NEXT ACTION    : Provision Supabase quote_requests with anon INSERT-only RLS and set
+                 NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY. Until then the form captures
+                 nothing. This is now the only blocker of real substance.
 ```
 
 ---
@@ -336,4 +332,61 @@ background, or the competitor-comparison table. Equally, do not flatten the site
 white cards and hairlines - the target is the board diagram's spec-sheet register, and
 `.spec-panel` is how that is expressed. `@theme` in `globals.css` is the single source of
 colour and display scale; there is no `tailwind.config.ts` any more.
+
+### 2026-08-21 - Claude (Opus 5) - DONE
+**Did:** Four things from user feedback. One was a real bug worth reading carefully.
+
+**1. THE LAYER BUG (root cause, affected more than the reported symptom).**
+Reported as "quote page goes white blank when I select an option". Cause: `.card` and
+friends were declared as **unlayered** CSS, while Tailwind v4 emits its utilities inside
+`@layer utilities`. **Unlayered CSS beats layered CSS regardless of specificity.** So on
+the selected state, `bg-ultra` and `border-ultra` silently lost to `.card`'s own
+`background`, while `text-paper` won (nothing else set `color`) - paper text on a paper
+card. Proven in-browser before the fix: computed `bg` was `rgb(252,250,245)` with
+`color: rgb(248,246,242)`.
+Fix: base styles into `@layer base`, component styles into `@layer components`.
+This also un-broke `spec-panel bg-paper` on the homepage board specs, which had been
+ignored the same way and nobody had noticed.
+**Lesson for this repo: any new component class MUST go inside `@layer components`,
+or it will silently swallow Tailwind utilities applied alongside it.**
+
+**2. Wired the real product images.** All 20 catalogue products now use the 1254-1402px
+masters from `images/corrugated_catalog_masters/`; the old 172px crops are deleted. The
+asset-to-slug mapping is recorded in the scratchpad script and mirrored in the commit.
+**asset-010 is deliberately unused** - it carries a fabricated "INDESTRUCTO(R)" brand
+mark, so `indestructo-mailers` uses asset-008 (unbranded) instead. asset-014 also spare.
+Because the images are now high-res, the render caps added for the tiny crops are gone.
+
+**3. /boxes and /works were duplicate content.** /works was literally
+`boxTypes.slice(0, 12)` with the same images linking to the same detail pages - bad for
+users and bad for indexing. /works is now capability content: flexo printing, die-cutting
+and blanks, fold and lock constructions, multi-depth scoring - each illustrated with the
+*blank or the score* rather than the finished product, so it cannot drift back into being
+a second catalogue. Nav entry renamed "Our works" -> "Capabilities".
+
+**4. Hero reworked.** Kraft ground behind the image half, a real product photograph, and
+the capability spec panel offset to overlap the image corner. The overlap is the single
+deliberate piece of asymmetry - the user asked for "a little funky", and this plus the
+signal-red numerals on /works and the hover scale on product tiles is where that went.
+
+**Files:** `app/globals.css` (layering), `app/page.tsx`, `app/works/page.tsx`,
+`app/boxes/page.tsx`, `app/boxes/[slug]/page.tsx`, `components/Header.tsx`,
+`components/HeroBoxes.tsx`, `content/boxTypes.ts`, `public/images/products/*`.
+Commit `7a2760e`.
+
+**Verified how:** `npx tsc --noEmit` clean. Production build, 33 routes. Against
+`next start` (not dev): axe-core wcag2a+wcag2aa 0 violations across 8 routes, h1 count
+exactly 1 each, zero failed network requests, zero console errors. The quote selection
+was re-tested in a real browser after the fix - computed background `rgb(20,64,122)`.
+Desktop 1440x900 and mobile 375x812 screenshots read and reviewed.
+
+**Left broken:** Supabase provisioning is now the only blocker of substance. Contact
+phone/email/GSTIN still pending; those rows are omitted rather than shown as "pending".
+
+**For the next agent:**
+- New component classes go in `@layer components`. Non-negotiable, see item 1.
+- Do not turn /works back into a product grid. It exists to show process, not catalogue.
+- Do not use `asset-010`; it has a fabricated trademark on the box.
+- Design target remains the board diagram's spec-sheet register. Do not reintroduce
+  Anton, hard offset shadows, the graph-paper background, or the competitor table.
 
