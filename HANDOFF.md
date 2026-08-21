@@ -14,28 +14,25 @@ baton means the next agent redoes your work.
 
 ```
 LAST AGENT     : Claude (Opus 5)
-DATE           : 2026-08-21
-LAST COMMIT    : da5858c
+DATE           : 2026-08-22
+LAST COMMIT    : 924a538 (pushed)
 BUILD PHASE    : LIVE. https://www.quality-enterprises.co.in
-                 Site, Supabase, Resend, local dashboard and lead pipeline all up.
-WORKING        : Public site carries the real IDA Mallapur address, phone and
-                 emails, a Google Maps embed, one-page quoting on /contact#quote,
-                 and "Products" in the nav. The outbound lead pipeline
-                 (scripts/leads/) harvests, enriches, scores and stores real
-                 prospects with phone numbers. The dashboard reads and works them.
-BROKEN         : QUOTE_NOTIFY_TO in VERCEL is still the old address - the local
-                 .env.local was changed but a Vercel env var can only be set by
-                 the account that owns the project, and the Vercel CLI on this
-                 machine is logged into `samad001z` / samad001zs-projects, which
-                 does NOT contain this project. The USER must set it.
-NEXT ACTION    : 1. In the Vercel dashboard for this project, set
-                      QUOTE_NOTIFY_TO = qualityenterprisesa1@gmail.com
-                    then redeploy. Until then live quote notifications go to
-                    001saadurrahman@gmail.com. (NEXT_PUBLIC_SITE_URL is already
-                    correct - verified via /robots.txt on the live site.)
-                 2. Schedule the lead sweep. Command is in scripts/leads/README.md.
-                 3. GSTIN still unsupplied; that row stays omitted.
-                 4. Strix pentest still not run.
+WORKING        : Site carries the IDA Mallapur address, the logo mark in header,
+                 footer and favicon, a Maps embed, and one-page quoting on
+                 /contact#quote with no delivery-area field. The lead pipeline
+                 (scripts/leads/) stores 31 prospects, 24 with phone numbers.
+BROKEN         : QUOTE_NOTIFY_TO in VERCEL is still an old address. It can only be
+                 set by the account owning the project, and the Vercel CLI here is
+                 logged into `samad001z` / samad001zs-projects, which does NOT hold
+                 it. The USER must set it in the Vercel dashboard.
+NEXT ACTION    : 1. Vercel env: QUOTE_NOTIFY_TO = qualityenterprisea1@gmail.com
+                    (NO "s" before a1 - this is also the Resend account address).
+                    Redeploy after. NEXT_PUBLIC_SITE_URL is already correct,
+                    verified via the live /robots.txt.
+                 2. Schedule the lead sweep - command in scripts/leads/README.md.
+                 3. Coverage is pharma-heavy; a second discovery source is the
+                    highest-value next move. Contract is in that README.
+                 4. GSTIN still unsupplied. Strix pentest still not run.
 ```
 
 ---
@@ -749,3 +746,53 @@ Commits `9bb1bca`, `1f6c8b4` (both pushed), `35e0b8a`, `da5858c`.
 outside pharma; the directory simply lists fewer food/textile/plastic plants in
 Telangana. Adding a second discovery source is the highest-value next move, and
 `scripts/leads/README.md` documents the source-module contract for it.
+
+### 2026-08-22 - Claude (Opus 5) - DONE  [LOGO, EMAIL FIX, SHORTER FORM]
+
+**Did:** Three corrections the user asked for after reviewing the live site.
+
+**1. The contact email was wrong.** Shipped as `qualityenterprisesa1@gmail.com`;
+the real one is `qualityenterprisea1@gmail.com` - **no "s" before a1**. That is
+also the Resend account address, so the two now agree. Fixed in `content/site.ts`,
+`.env.local` and `.env.example`. `quality-enterprises@outlook.com` stays as the
+secondary. The Vercel copy of QUOTE_NOTIFY_TO is still unfixed - see CURRENT STATE.
+
+**2. Delivery area removed from the quote form.** It was one more field between a
+buyer and a submitted spec. `app/api/quote/route.ts` still *accepts* and validates
+`location` when a caller sends one - so nothing posting to it breaks - but no
+longer rejects a request without one, and `city`/`area` are nullable on `Row`.
+`content/deliveryAreas.json` is still used by the API and the dashboard; do not
+delete it.
+
+**3. Logo.** The user supplied `image.png` (grey/red isometric box on white). It
+is background-removed and cropped to `public/logo.png`, `public/logo-square.png`,
+`app/icon.png` (favicon, replacing the drawn blue box - `app/icon.svg` deleted)
+and `app/apple-icon.png`. Wired left of the wordmark in `Header.tsx` and
+`Footer.tsx` with `alt=""`, since the adjacent text already names the company.
+
+**BACKGROUND REMOVAL, the non-obvious part:** a flat two-colour mark on white is
+ambiguous to naive keying. Mid-grey could be 50%-covered black or opaque grey -
+both composite identically over white and completely differently over anything
+else, so `alpha = 255 - min(R,G,B)` turns the grey half of this logo into
+half-transparent black. What works: snap each pixel to the nearest of the logo's
+own inks, then set alpha from how far it sits between white and that ink
+(`a = dWhite / (dWhite + dInk)`). Restrict palette candidates to solid pixels
+(`min(channel) < 200`) - letting anti-aliased blends in picked up two pinks and
+left a fringe on the red. The script is in the session scratchpad, not the repo;
+re-derive from this note if the logo is ever replaced.
+
+**Files:** `content/site.ts`, `components/{Header,Footer,QuoteForm}.tsx`,
+`app/api/quote/route.ts`, `app/icon.png`, `app/apple-icon.png`,
+`app/icon.svg` (deleted), `public/logo.png`, `public/logo-square.png`,
+`.env.local`, `.env.example`. Commit `924a538`, pushed.
+
+**Verified how:** `npx tsc --noEmit` clean, production build 34 routes. Against
+`next start`: a submission with no location returned `{"ok":true}` and stored
+city/area as null - test row deleted, follow-up count 0. `/icon.png`,
+`/apple-icon.png`, `/logo.png` all 200 `image/png`. axe wcag2a+wcag2aa 0
+violations, 0 console errors at 1440x900 and 375x812; both screenshots read.
+
+**Also this session:** the repair sweep for the destructive `--rescore` finished.
+`outbound_prospects` is back to 31 rows with **24 carrying a phone number** - up
+from 14 after the bad rescore, and up from 22 before it. The merge-not-replace
+fix is in `run.mjs`.
