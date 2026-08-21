@@ -71,6 +71,12 @@ export function nameFromTitle(title, url) {
   t = t.replace(/[:|]+\s*$/, "").replace(/^[:\s|]+/, "");
   const parts = t.split(/\s*[|:–—]\s*|\s*-\s*(?=[A-Z])/).map((x) => x.trim()).filter(Boolean);
   const junk = /^(home|about|about us|welcome|contact|products|index|profile|company|manufacturer[s]?)$/i;
+  /* Dead and parked pages rank like live ones. "Account Suspended" was stored
+     as a prospect. So were listing-page headings, which describe a category
+     rather than name a business. */
+  const DEAD = /(account suspended|domain (is )?for sale|under construction|coming soon|page not found|404|default web page|parked|website expired|bandwidth limit|error)/i;
+  const CATEGORY = /^(top |best |list of |manufacturing details|.* manufacturers? in |.* suppliers? in |.* companies in )/i;
+  if (DEAD.test(t) || CATEGORY.test(t)) return null;
   const pick = parts.find((x) => !junk.test(x) && x.length > 2);
   // A page titled only "About" or "Home" names nothing. Fall back to the domain
   // rather than storing a prospect called "About".
@@ -78,8 +84,10 @@ export function nameFromTitle(title, url) {
   // Decorative colons and pipes wrap plenty of Indian company titles (":: Balaji
   // Foods : :"), and they survive the split because they are separated by spaces.
   const name = pick.replace(/^["“‘']+|["”’']+$/g, "").replace(/^welcome to\s+/i, "").replace(/^[\s:|.\-–—]+|[\s:|.\-–—]+$/g, "").replace(/\s{2,}/g, " ").trim();
-  if (!name || name.length < 3 || name.length > 70) return null;
-  return name;
+  // "ADEE HYGENE INDUSTRIES in Medchal, Telangana" — the place is not the name.
+  const trimmed = name.replace(/\s+in\s+[A-Z][A-Za-z]+(,\s*[A-Z][A-Za-z]+)*\s*$/, "").trim();
+  if (!trimmed || trimmed.length < 3 || trimmed.length > 70) return null;
+  return trimmed;
 }
 
 /**

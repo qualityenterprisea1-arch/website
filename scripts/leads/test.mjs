@@ -246,4 +246,18 @@ it("drops the employer from a job title, matching on tokens not text", () => {
   assert.equal(stripEmployer("Purchase Manager", "Acme Ltd"), "Purchase Manager");
 });
 
+it("never invents a location for a company it could not place", () => {
+  // The real bug: every Exa row defaulted to city "Hyderabad", so a company
+  // nobody had located scored 18 of 30 proximity points and could never be
+  // disqualified for having no address.
+  const p = proximity({});
+  assert.equal(p.band, "unknown");
+  assert.equal(p.points, 0, "an unknown location scores nothing, not a Hyderabad rate");
+  assert.equal(proximity({ address: null, district: null, city: null }).band, "unknown");
+  // A real company with a website but no address is still workable, so it is
+  // kept and sorted low rather than binned.
+  assert.equal(disqualify({ company_name: "Acme Foods Ltd", website_url: "https://acme.example/" }), null);
+  assert.ok(disqualify({ company_name: "Acme Foods Ltd", website_url: "urn:qe:no-website:acme" }));
+});
+
 console.log(`${pass} checks passed${process.exitCode ? " (with failures above)" : ""}`);

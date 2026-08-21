@@ -161,7 +161,7 @@ async function buildProspect(row) {
      professional profiles are where the person who signs the PO actually is,
      so they outrank anything scraped off an About page. Inert without
      EXA_API_KEY - see scripts/leads/people.mjs. */
-  const buyers = await findBuyers(row.company_name, row.city || "Hyderabad");
+  const buyers = await findBuyers(row.company_name, row.city || row.district || "Hyderabad");
   const people = [...buyers, ...site.people];
   const best = people[0] || null;
 
@@ -185,7 +185,10 @@ async function buildProspect(row) {
     // The unique key. A directory entry with no website still needs one, and a
     // urn makes it obvious in the dashboard that there is no site to visit.
     website_url: row.website_url || `urn:qe:no-website:${encodeURIComponent(row.company_name.toLowerCase())}`,
-    city: row.city || "Hyderabad",
+    // Never invent a city. This used to default to "Hyderabad", which meant
+    // every Exa row - none of which carry a city - scored 18 of 30 proximity
+    // points for a location nobody had established.
+    city: row.city || null,
     district: row.district || null,
     // Exa gives a company and a website, never an address. The site does.
     address: row.address || row.addresses?.[0] || site.address?.address || null,

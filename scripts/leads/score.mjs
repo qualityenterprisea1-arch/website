@@ -37,7 +37,11 @@ const REGION_DISTRICTS = ["sangareddy", "medak", "nalgonda", "yadadri", "bhuvana
 const CORRIDOR_PINS = ["500076", "500039", "500051", "500062", "500092", "500013", "500007"];
 
 export function proximity({ address = "", district = "", city = "" }) {
-  const hay = `${address} ${district} ${city}`.toLowerCase();
+  const hay = `${address ?? ""} ${district ?? ""} ${city ?? ""}`.toLowerCase().trim();
+  /* No location at all is not the same as a far one. Scoring it zero keeps an
+     unlocated company visible and sorted low, rather than crediting it with a
+     Hyderabad address nobody established. */
+  if (!hay) return { band: "unknown", points: 0, why: "No address found — distance unknown, check the site" };
   const pin = (String(address).match(/\b5\d{5}\b/) || [])[0];
 
   if (CORRIDOR_PINS.includes(pin) || SAME_CORRIDOR.some((a) => hay.includes(a)))
@@ -149,8 +153,12 @@ const COMPETITOR = /\b(corrugat|packaging|packing|carton|box(es)?\s+(manufactur|
 export function disqualify(prospect) {
   if (COMPETITOR.test(prospect.company_name || "") || COMPETITOR.test(prospect.description || ""))
     return "Packaging or corrugated business - competitor or supplier, not a buyer";
-  if (!prospect.address && !prospect.city && !prospect.district)
-    return "No location on record, so delivery cost cannot be judged";
+  /* A missing address is a gap to fill, not a reason to bin a real company -
+     as long as there is a website where someone can find it in a few seconds.
+     With neither, there is nothing to work with. */
+  if (!prospect.address && !prospect.city && !prospect.district
+      && (!prospect.website_url || String(prospect.website_url).startsWith("urn:")))
+    return "No location and no website, so there is nothing to check";
   if (proximity(prospect).band === "outside")
     return "Outside the delivery area";
   return null;
