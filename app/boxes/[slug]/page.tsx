@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getBoxType, boxTypes } from "@/content/boxTypes";
+import { site } from "@/content/site";
 import { pageMetadata, breadcrumbSchema, jsonLdScript } from "@/content/seo";
 
 export function generateStaticParams() { return boxTypes.map(({ slug }) => ({ slug })); }
@@ -21,10 +22,15 @@ export default async function BoxDetail({ params }: { params: Promise<{ slug: st
       <div>
         <h1 className="text-3xl md:text-4xl">{item.name}</h1>
         <p className="mt-5 max-w-xl text-lg text-ink-soft">{item.description}</p>
-        <dl className="mt-8 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
-          <div className="bg-paper p-5"><dt className="eyebrow">Best for</dt><dd className="mt-2 font-medium">{item.bestFor}</dd></div>
-          <div className="bg-paper p-5"><dt className="eyebrow">Construction</dt><dd className="mt-2 font-medium">{item.ply}</dd></div>
-        </dl>
+        <div className="spec-panel mt-8 max-w-md">
+          <div className="spec-panel-top"><span>Format</span><b>Specification</b></div>
+          <div className="spec-panel-rows">
+            <div><span>Construction</span><b>{item.ply}</b></div>
+            <div><span>Best for</span><b>{item.bestFor}</b></div>
+            <div><span>Minimum order</span><b>{site.moq}</b></div>
+            <div><span>Sizing</span><b>Made to your dimensions</b></div>
+          </div>
+        </div>
         <p className="mt-8 max-w-xl text-ink-soft">Tell us your internal dimensions, quantity and handling requirement. The quote comes back with the construction stated clearly.</p>
         <Link href={`/quote?box=${item.slug}`} className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Quote this format</Link>
       </div>
