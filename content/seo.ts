@@ -19,5 +19,9 @@ export function breadcrumbSchema(items: Array<{ name: string; path: string }>) {
 }
 
 export function jsonLdScript(value: unknown) {
-  return { __html: JSON.stringify(value) };
+  // Escape the characters that could close the surrounding <script> tag or open a
+  // comment. Nothing user-controlled reaches this today — every caller passes
+  // constants or a slug already narrowed by generateStaticParams — but this is
+  // injected with dangerouslySetInnerHTML, so it should not depend on that.
+  return { __html: JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026") };
 }
