@@ -15,26 +15,27 @@ baton means the next agent redoes your work.
 ```
 LAST AGENT     : Claude (Opus 5)
 DATE           : 2026-08-21
-LAST COMMIT    : 9bb1bca
-BUILD PHASE    : LIVE. Deployed on Vercel at https://www.quality-enterprises.co.in
-                 Supabase + Resend wired; local dashboard operational.
-WORKING        : Contact facts are REAL now (see below). The /quote wizard is
-                 deleted; one form lives on /contact#quote and /quote 308s to it.
-                 Google Maps embed on /contact. Nav says "Products". Address is
-                 IDA Mallapur everywhere including JSON-LD.
-BROKEN         : Nothing known. Local commit 9bb1bca is NOT pushed yet - the live
-                 site still shows Narsingi and the six-step wizard until it is.
-NEXT ACTION    : 1. `git push origin main` to deploy 9bb1bca.
-                 2. Confirm these are set in Vercel, then redeploy:
-                      NEXT_PUBLIC_SITE_URL = https://www.quality-enterprises.co.in
-                      QUOTE_NOTIFY_FROM = Quality Enterprises <quotes@send.quality-enterprises.co.in>
-                      QUOTE_NOTIFY_TO   = 001saadurrahman@gmail.com
-                    Verify by curling /robots.txt - it must NOT say website-sandy-ten-39.
-                 3. QUOTE_NOTIFY_TO should probably become qualityenterprisesa1@gmail.com
-                    now that the business inbox is known. Ask first.
-                 4. GSTIN still unsupplied; that row stays omitted.
-                 5. The outbound prospect pipeline is NOT producing usable leads.
-                    See the audit entry at the bottom before building on it.
+LAST COMMIT    : da5858c
+BUILD PHASE    : LIVE. https://www.quality-enterprises.co.in
+                 Site, Supabase, Resend, local dashboard and lead pipeline all up.
+WORKING        : Public site carries the real IDA Mallapur address, phone and
+                 emails, a Google Maps embed, one-page quoting on /contact#quote,
+                 and "Products" in the nav. The outbound lead pipeline
+                 (scripts/leads/) harvests, enriches, scores and stores real
+                 prospects with phone numbers. The dashboard reads and works them.
+BROKEN         : QUOTE_NOTIFY_TO in VERCEL is still the old address - the local
+                 .env.local was changed but a Vercel env var can only be set by
+                 the account that owns the project, and the Vercel CLI on this
+                 machine is logged into `samad001z` / samad001zs-projects, which
+                 does NOT contain this project. The USER must set it.
+NEXT ACTION    : 1. In the Vercel dashboard for this project, set
+                      QUOTE_NOTIFY_TO = qualityenterprisesa1@gmail.com
+                    then redeploy. Until then live quote notifications go to
+                    001saadurrahman@gmail.com. (NEXT_PUBLIC_SITE_URL is already
+                    correct - verified via /robots.txt on the live site.)
+                 2. Schedule the lead sweep. Command is in scripts/leads/README.md.
+                 3. GSTIN still unsupplied; that row stays omitted.
+                 4. Strix pentest still not run.
 ```
 
 ---
@@ -631,3 +632,120 @@ The lead generation is not.
 **For whoever picks this up:** the gap is contact discovery and a corrugated-buyer
 scoring model, in that order. Role inboxes and D grades are not worth outreach, and
 sending to them from the Resend domain risks the sending reputation for nothing.
+
+### 2026-08-21 - Claude (Opus 5) - DONE  [LEAD PIPELINE REBUILD]
+
+**Did:** Rebuilt the outbound pipeline so it produces leads someone can actually
+call, and rebuilt the dashboard around what it produces. Pushed the earlier
+contact/map/quote commit to production.
+
+**WHY THE OLD PIPELINE PRODUCED NOTHING** (audited before touching it, see the
+audit entry above): `scripts/discover-prospects.mjs` read a hand-written
+`urls.txt` - there was no discovery at all - and scored with the plugin's SaaS
+BANT model, which derives budget from `pricing_tiers.length > 0` and timeline
+from `has_job_postings`. A pharma plant publishes neither for cartons, so budget
+scored 0/25 on every row **by construction**. All three prospects graded D with
+zero named contacts and zero phone numbers. That script is now deleted.
+
+**THE NEW PIPELINE** - `scripts/leads/`, documented in its own README:
+
+  discover -> enrich -> score -> store, and it never sends anything.
+
+- **Discovery is factoriesindia.net.** This was the find of the session. It is a
+  **server-rendered** register of licensed Indian factories - company, phone,
+  plant address, district, website, all in plain HTML - indexed as
+  `/{industry}-factories-in-{district}/district` with `?page=N`. No API key, no
+  JS rendering. Sources that were evaluated and rejected:
+    * `ipass.telangana.gov.in` - best data on paper (named contact emails plus
+      official investment and employment figures) but it is ASP.NET WebForms
+      behind `__doPostBack`, the district filter returned 0 rows on a hand-built
+      postback, and the 22 MB home page contains no drilldown links to harvest.
+      One working `?enc=` slice exists via Exa's index; that is all.
+    * `dca.telangana.gov.in/open_record.php?ID=N` - authoritative licensed
+      manufacturer register, enumerable by ID, but it serves **PDFs** and
+      carries no phone or website.
+    * Firecrawl MCP - keyless access is disabled, needs an API key.
+- **Enrichment** crawls the company's own site (never leaves the domain) for
+  `tel:` links, emails ranked by whether they reach a purchase inbox, and named
+  people paired with a buying title. `enrich.mjs` also exports `normalisePhone`.
+- **Scoring** is `score.mjs`, and the weights are the argument: proximity 30,
+  packaging fit 25, reachability 25, scale 20. Distance is heaviest on purpose -
+  corrugated is bulky and cheap per kilo, so freight is a large slice of
+  delivered cost. Competitors, no-location rows and out-of-area rows are
+  disqualified outright rather than scored.
+
+**RESULT, measured not claimed:** 28 companies, 22 with a phone number, graded
+A-D with a stated reason per term. Before: 3 companies, 0 phones, 0 names, all D.
+
+**EXTRACTION BUGS THAT ARE NOW REGRESSION TESTS** (`node scripts/leads/test.mjs`,
+17 checks, no network - run it after touching any extractor):
+1. Name/title pairing picked the **longer string** as the name, so "Managing
+   Director" got filed as a person named Gopichand.
+2. The title regexes run case-insensitively to catch "MANAGING DIRECTOR", which
+   also let the *name* half match lowercase - "Gopichand i" became a contact.
+   Capitalisation is now re-checked after the match.
+3. Common-noun pairs beside a title: "Ware House, Executive" is a department.
+   There is a long NOISE word list; add to it, do not loosen the pattern.
+4. **"malkajgiri" was in the same-corridor locality list.** It is a district, so
+   every Medchal-Malkajgiri plant scored as a next-door neighbour.
+5. **`/\b50\d{4}\b/` matched every Telangana postcode**, so Sangareddy (502xxx)
+   and Nalgonda (508xxx) plants scored as Greater Hyderabad. Named districts are
+   now checked before any postcode heuristic; the city test is `50[01]xxx`.
+6. The directory's own footer address `contact@factoriesindia.net` was being
+   stored as the company's contact email.
+7. The directory titles many rows by plant ("Plant 1", "Api Hyderabad 3", "Tea
+   Factory"). The homepage `<title>` supplies a real name - but only when the
+   directory name is *nothing but* a plant label. "Shilpa Medicare Ltd., Unit
+   VII" gets its suffix stripped, not its name replaced.
+
+**A BUG I CAUSED AND HAD TO REPAIR - do not repeat it:** the first `--rescore`
+implementation re-crawled every site and **replaced** phones/emails with the
+result. Run minutes after a full sweep, the same hosts throttled, most crawls
+returned nothing, and it wiped real phone numbers off 20-odd rows in 27s. It now
+feeds the stored numbers back in as input and **unions** old with new. Any
+enrichment path that can return empty must merge, never replace.
+
+**DASHBOARD** - `C:\qe-leads-dashboard`, still outside git, still 127.0.0.1 only,
+service role still server-side.
+- `server.js`: added `disqualified` status, human-only `is_verified` /
+  `do_not_contact` patches, the new CSV columns, and `POST /api/pipeline/run`
+  which spawns the sweep with **fixed arguments** - never take argv from the
+  request, that endpoint must not become a shell.
+- `index.html`: rewritten. Stat tiles, four single-series bar charts, filters,
+  sortable table, detail drawer showing the score breakdown with its reasons and
+  every phone/email/person beside the URL it came from, plus a copy-call-sheet
+  button. Charts follow the `dataviz` skill: grade and distance are **ordinal**,
+  so they wear a lightness-monotonic ramp of one hue, never a rainbow, and the
+  grade chip always carries its letter so identity is never colour alone.
+- Verified: 0 axe wcag2a/wcag2aa violations with the drawer open and closed,
+  0 console errors, screenshot read at 1500px.
+
+**RULES THIS PIPELINE MUST KEEP:**
+1. Nothing is invented. Every phone, email and name stores its `source_url`. No
+   source, no value.
+2. `is_verified` and `do_not_contact` are human-only. The pipeline never writes
+   them, so a scraped contact cannot mark itself safe to email.
+3. Re-runs never overwrite human work - `status`, `notes`, `is_verified`,
+   `do_not_contact` and `outreach_draft` are simply absent from the upsert.
+4. Nothing is ever sent. A bad send from send.quality-enterprises.co.in costs the
+   sending reputation that every real quote notification depends on.
+
+**ON THE TWO REQUESTED THIRD PARTIES:** the ai-sales-team plugin's *skills* are
+good (`sales-contacts` is a sound agent procedure); its *Python scripts* are the
+weak part and are no longer used. Agent-Reach was read but not installed - it is
+a capability layer for reading Twitter/Reddit/YouTube/LinkedIn, routing to
+community CLIs, and the one thing it would add here (LinkedIn contact lookup)
+needs a logged-in account and an alternate-account warning. Neither is what was
+blocking lead quality; contact discovery and a domain-correct scoring model were.
+
+**Files:** `scripts/leads/{run,enrich,score,test}.mjs`,
+`scripts/leads/sources/factoriesindia.mjs`, `scripts/leads/README.md`,
+`supabase/migrations/20260821200000_prospect_intelligence.sql`,
+`scripts/discover-prospects.mjs` (deleted), `.env.example`;
+plus local-only `C:\qe-leads-dashboard\{server.js,index.html}`.
+Commits `9bb1bca`, `1f6c8b4` (both pushed), `35e0b8a`, `da5858c`.
+
+**Left broken:** Vercel `QUOTE_NOTIFY_TO` - see CURRENT STATE. Coverage is thin
+outside pharma; the directory simply lists fewer food/textile/plastic plants in
+Telangana. Adding a second discovery source is the highest-value next move, and
+`scripts/leads/README.md` documents the source-module contract for it.
