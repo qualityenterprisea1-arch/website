@@ -8,7 +8,11 @@ const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABAS
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const RESEND_KEY = process.env.RESEND_API_KEY;
 const NOTIFY_TO = process.env.QUOTE_NOTIFY_TO;
-const NOTIFY_FROM = process.env.QUOTE_NOTIFY_FROM ?? "Quality Enterprises <onboarding@resend.dev>";
+// send.quality-enterprises.co.in is verified in Resend, so this fallback sends from
+// the real domain if QUOTE_NOTIFY_FROM is ever missing. It used to be
+// onboarding@resend.dev, which only delivers to the Resend account owner — a silent
+// way to lose every notification.
+const NOTIFY_FROM = process.env.QUOTE_NOTIFY_FROM ?? "Quality Enterprises <quotes@send.quality-enterprises.co.in>";
 
 const MOQ = 500;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
