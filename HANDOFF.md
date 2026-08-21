@@ -13,31 +13,28 @@ baton means the next agent redoes your work.
 ## CURRENT STATE  ← overwrite this whole block every session
 
 ```
-LAST AGENT     : GPT-5.6
+LAST AGENT     : Claude (Opus 5)
 DATE           : 2026-08-21
-LAST COMMIT    : pending this session
+LAST COMMIT    : 9bb1bca
 BUILD PHASE    : LIVE. Deployed on Vercel at https://www.quality-enterprises.co.in
-                 Supabase + Resend are wired and the local dashboard is operational.
-WORKING        : Quote wizard captures a dynamic city/delivery area, validates it
-                 server-side, writes city/area to Supabase, and includes Delivery in
-                 Resend notifications. Dashboard supports inbound, outbound and
-                 combined tabs, pipeline statuses, notes, filters, charts, drawer,
-                 CSV and URL-persisted views. Three public-source Hyderabad prospects
-                 are stored separately as drafted, unverified records; no outreach was
-                 sent. Clean TypeScript and production build verified this session.
-BROKEN         : In-app Browser was unavailable, so dashboard verification used the
-                 standalone installed Chrome/Playwright path. The sales analyzer can
-                 return malformed contact data or hang on some sites; the discovery
-                 script now times out and records warnings rather than blocking a run.
-NEXT ACTION    : 1. Confirm these are set in Vercel, then redeploy:
+                 Supabase + Resend wired; local dashboard operational.
+WORKING        : Contact facts are REAL now (see below). The /quote wizard is
+                 deleted; one form lives on /contact#quote and /quote 308s to it.
+                 Google Maps embed on /contact. Nav says "Products". Address is
+                 IDA Mallapur everywhere including JSON-LD.
+BROKEN         : Nothing known. Local commit 9bb1bca is NOT pushed yet - the live
+                 site still shows Narsingi and the six-step wizard until it is.
+NEXT ACTION    : 1. `git push origin main` to deploy 9bb1bca.
+                 2. Confirm these are set in Vercel, then redeploy:
                       NEXT_PUBLIC_SITE_URL = https://www.quality-enterprises.co.in
                       QUOTE_NOTIFY_FROM = Quality Enterprises <quotes@send.quality-enterprises.co.in>
                       QUOTE_NOTIFY_TO   = 001saadurrahman@gmail.com
                     Verify by curling /robots.txt - it must NOT say website-sandy-ten-39.
-                 2. Strix pentest still not run: Docker + image ready, needs the user's
-                    STRIX_LLM + LLM_API_KEY. Run against the LIVE url, not a local dir.
-                 3. PHONE / WHATSAPP / EMAIL / GSTIN still unsupplied. Keep those
-                    contact rows omitted until real values arrive.
+                 3. QUOTE_NOTIFY_TO should probably become qualityenterprisesa1@gmail.com
+                    now that the business inbox is known. Ask first.
+                 4. GSTIN still unsupplied; that row stays omitted.
+                 5. The outbound prospect pipeline is NOT producing usable leads.
+                    See the audit entry at the bottom before building on it.
 ```
 
 ---
@@ -528,3 +525,109 @@ hero rebuild, About rewrite, Supabase, Resend, GitHub, Vercel, custom domain.
 single highest-value remaining task is confirming the three Vercel env vars, because
 until then the live site advertises the wrong canonical origin and lead notifications
 land in the wrong inbox.
+
+### 2026-08-21 - Claude (Opus 5) - DONE  [CONTACT FACTS, MAP, ONE-PAGE QUOTE]
+
+**Did:** Four user-requested changes, plus an audit of GPT-5.6's outbound pipeline.
+
+**1. The quote wizard is gone.** The user's words: "in get a quote its becoming
+tooo long while selecting a option net entering dimensions and next too long and
+some times frustrating". Six steps meant five Next clicks before the form would
+accept anything. `app/quote/` is deleted; `components/QuoteForm.tsx` renders every
+field on one screen and is embedded on `/contact` under `id="quote"`. Selects
+replaced the card grids - twenty format cards became one `<select>`. `/quote` 308s
+to `/contact#quote` via `next.config.ts` redirects, so indexed links survive.
+`/boxes/<slug>` now links `/contact?box=<slug>#quote` and the form prefills the
+format from that param in a mount effect (no Suspense boundary needed, page stays
+static). The `/api/quote` payload shape is unchanged - the route was not touched.
+
+**2. Real contact facts.** `content/site.ts` now carries:
+  address  Road No. 13, Plot No. 75A, IDA Mallapur, Hyderabad, Telangana 500076
+  phone    +91 94404 32434   (phoneHref: tel:+919440432434)
+  email    qualityenterprisesa1@gmail.com
+  emailAlt quality-enterprises@outlook.com
+GSTIN is still the only `pending` value and its row is still omitted.
+Narsingi/500089 is gone from every route, the footer, the hero eyebrow, the FAQ
+and the LocalBusiness JSON-LD, which now also emits `telephone` and `email`.
+Mallapur was added to `content/deliveryAreas.json`.
+NOTE: the Resend ACCOUNT email is `qualityenterprisea1@gmail.com` (no 's'); the
+business inbox the user supplied is `qualityenterprisesa1@gmail.com` (with 's').
+Different addresses. Do not "correct" either one.
+
+**3. Google Maps on /contact.** Keyless `?output=embed` iframe, no API key, no
+client JS. The CSP here is `frame-ancestors 'none'`, which governs who may frame
+us, not what we frame - the iframe is unaffected.
+**Do not put the full address in the map query.** Google has no address-level
+record for Plot 75A and silently pins a *neighbouring business* ("RSP AIR
+PRODUCTS PVT LTD") when given the whole string. Verified by rendering three query
+variants side by side. `Road No 13, IDA Mallapur, Hyderabad, Telangana 500076`
+resolves exactly and pins the road; the plot number is carried by the caption
+below the map. Nominatim has no record for the estate at all - it only returns the
+Mallapur suburb centroid, which would pin the wrong place. Do not hardcode
+coordinates unless the user supplies their own Maps pin.
+
+**4. Nav "Boxes" -> "Products".** Label only. `/boxes` routes are unchanged.
+
+**New CSS rule:** `.label-stack` in `@layer components`. `.eyebrow` is
+`inline-flex; align-items: center`, so `<label className="eyebrow">Text <input/></label>`
+parks the label *beside* its input and squeezes it to nothing. Caught in a
+screenshot, not in the build. Any new form label needs `label-stack eyebrow`.
+
+**Files:** `components/QuoteForm.tsx` (new), `app/contact/page.tsx`,
+`app/quote/` (deleted), `content/site.ts`, `content/deliveryAreas.json`,
+`content/faq.ts`, `next.config.ts`, `app/sitemap.ts`, `app/layout.tsx`,
+`app/{about,page,process,works}`, `app/boxes/[slug]/page.tsx`,
+`components/{Header,Footer,Hero,MobileBar}.tsx`, `app/globals.css`. Commit `9bb1bca`.
+
+**Verified how:** `npx tsc --noEmit` clean. Production build, 33 routes. Against
+`next start`: `/quote` returns 308 to `/contact#quote`; a real POST with the new
+payload returned `{"ok":true}`, landed in live Supabase with area "Mallapur", and
+Resend logged id `d5f4abb2-1cfc-4e2f-9eed-69204e4ad29f`; the test row was then
+deleted and a follow-up count confirmed 0 remaining. axe-core wcag2a+wcag2aa: 0
+violations and exactly 1 h1 on 7 routes. Desktop 1440x900 and mobile 375x812
+screenshots read and reviewed - the map renders and pins Road No. 13 on both.
+
+**Left broken:** Commit 9bb1bca is local only. Nothing else known.
+
+---
+
+### AUDIT: the outbound prospect pipeline does not work yet
+
+The user asked whether the sales agents are producing real, accurate leads aimed
+at purchasing managers. Checked against the live `outbound_prospects` table, not
+against the previous handoff entry. Findings:
+
+**The companies are real.** Kreata Foods, Sri Krishna Pharma and Lee Pharma all
+exist, are in Hyderabad, and all ship physical product. No hallucinated rows.
+
+**The leads are not usable.** `jsonb_array_length(contacts)` is **0 on all three
+rows**. Not one named person, not one job title, not one purchasing manager. The
+`contact_email` values are generic role inboxes scraped from page footers -
+`sales@`, `skg@`, `purchase@`. `purchase@leepharma.com` happens to be the right
+department, but that is the site publishing it, not the agent targeting it.
+`contact_phone` is null on all three.
+
+**The scorer agrees.** All three grade **D**. BANT totals are 24, 19 and 6 out of
+100. Every row's own `recommended_action` reads "Low priority - add to long-term
+nurture sequence. Revisit in 90 days." The pipeline's own verdict on its entire
+output is: do not contact these people.
+
+**The scoring model is measuring the wrong things.** `scripts/discover-prospects.mjs`
+builds the scorer input from SaaS signals: budget from `pricing_tiers.length > 0`,
+timeline and need from `has_job_postings`. A pharma manufacturer does not publish
+pricing tiers for cartons or post job ads for packaging, so budget scores 0/25 on
+every row by construction. Authority scores 0-5/25 because it is derived from the
+contact finder, which returned nothing. The grades are an artifact of the model,
+not a measurement of the prospects.
+
+**There is no discovery.** `discover-prospects.mjs` reads a `urls.txt`. Three URLs
+were fed in by hand. Nothing searches, nothing ranks a market, nothing decides who
+to approach. It is an enrichment script, not a prospecting agent.
+
+**What was right:** no email was sent, the rows are `is_verified=false` and status
+`drafted`, and outbound is a separate RLS-locked table. The safety design is sound.
+The lead generation is not.
+
+**For whoever picks this up:** the gap is contact discovery and a corrugated-buyer
+scoring model, in that order. Role inboxes and D grades are not worth outreach, and
+sending to them from the Resend domain risks the sending reputation for nothing.
