@@ -153,7 +153,7 @@
 .board-loading { display: grid; min-height: 80vh; place-items: center; background: #D7D4CB; padding: 48px 20px; text-align: center; }
 .board-loading span { font: 700 11px var(--font-mono), monospace; letter-spacing: .15em; text-transform: uppercase; }
 .board-loading h2 { margin: 12px auto 0; max-width: 420px; font-size: clamp(32px, 5vw, 58px); }
-.board-loading p { margin: 12px 0 0; color: rgba(22,21,15,.52); }
+.board-loading p { margin: 12px 0 0; color: rgba(22,21,15,.72); }
 .board-static .board-rig { height: auto; }
 .board-static .board-stage { position: static; height: auto; overflow: visible; padding: clamp(28px, 7vw, 48px) 0 8px; }
 .board-static .board-heading { position: static; max-width: none; padding: 0 clamp(20px, 5vw, 28px) 18px; }

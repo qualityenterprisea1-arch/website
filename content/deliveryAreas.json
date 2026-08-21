@@ -1,0 +1,25 @@
+{
+  "locations": [
+    { "value": "hyderabad:narsingi", "city": "Hyderabad", "area": "Narsingi" },
+    { "value": "hyderabad:gachibowli", "city": "Hyderabad", "area": "Gachibowli" },
+    { "value": "hyderabad:madhapur", "city": "Hyderabad", "area": "Madhapur" },
+    { "value": "hyderabad:kukatpally", "city": "Hyderabad", "area": "Kukatpally" },
+    { "value": "hyderabad:secunderabad", "city": "Hyderabad", "area": "Secunderabad" },
+    { "value": "hyderabad:jeedimetla", "city": "Hyderabad", "area": "Jeedimetla" },
+    { "value": "hyderabad:balanagar", "city": "Hyderabad", "area": "Balanagar" },
+    { "value": "hyderabad:uppal", "city": "Hyderabad", "area": "Uppal" },
+    { "value": "hyderabad:shamshabad", "city": "Hyderabad", "area": "Shamshabad" },
+    { "value": "hyderabad:medchal", "city": "Hyderabad", "area": "Medchal" },
+    { "value": "hyderabad:patancheru", "city": "Hyderabad", "area": "Patancheru" },
+    { "value": "hyderabad:kokapet", "city": "Hyderabad", "area": "Kokapet" },
+    { "value": "hyderabad:financial-district", "city": "Hyderabad", "area": "Financial District" },
+    { "value": "hyderabad:manikonda", "city": "Hyderabad", "area": "Manikonda" },
+    { "value": "hyderabad:hitech-city", "city": "Hyderabad", "area": "Hitech City" },
+    { "value": "hyderabad:kondapur", "city": "Hyderabad", "area": "Kondapur" },
+    { "value": "hyderabad:miyapur", "city": "Hyderabad", "area": "Miyapur" },
+    { "value": "hyderabad:nacharam", "city": "Hyderabad", "area": "Nacharam" },
+    { "value": "hyderabad:cherlapally", "city": "Hyderabad", "area": "Cherlapally" },
+    { "value": "hyderabad:lb-nagar", "city": "Hyderabad", "area": "LB Nagar" },
+    { "value": "outside-hyderabad", "city": "Outside Hyderabad", "area": "", "requiresDetail": true }
+  ]
+}

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { boxTypes } from "@/content/boxTypes";
+import deliveryAreas from "@/content/deliveryAreas.json";
 import { site } from "@/content/site";
 
-type Answers = { boxType: string; length: string; width: string; height: string; unit: "mm" | "in"; ply: string; quantity: string; printing: string; name: string; phone: string; company: string; email: string; website: string };
-const initial: Answers = { boxType: "", length: "", width: "", height: "", unit: "mm", ply: "", quantity: "500", printing: "", name: "", phone: "", company: "", email: "", website: "" };
+type Answers = { boxType: string; length: string; width: string; height: string; unit: "mm" | "in"; ply: string; quantity: string; printing: string; location: string; outsideArea: string; name: string; phone: string; company: string; email: string; website: string };
+const initial: Answers = { boxType: "", length: "", width: "", height: "", unit: "mm", ply: "", quantity: "500", printing: "", location: "", outsideArea: "", name: "", phone: "", company: "", email: "", website: "" };
 
 const MOQ = 500;
 const field = "focus-ring mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 text-base outline-none transition-colors focus:border-ink";
@@ -24,7 +25,8 @@ export default function QuotePage() {
     if (step === 2) return !!answers.ply;
     if (step === 3) return Number(answers.quantity) >= MOQ;
     if (step === 4) return !!answers.printing;
-    return !!answers.name.trim() && !!answers.phone.trim();
+    const selectedLocation = deliveryAreas.locations.find((item) => item.value === answers.location);
+    return !!answers.name.trim() && !!answers.phone.trim() && !!selectedLocation && (!selectedLocation.requiresDetail || answers.outsideArea.trim().length >= 2);
   }, [answers, step]);
 
   // A failed write must surface. Reporting success on a dropped request loses the lead.
@@ -37,6 +39,8 @@ export default function QuotePage() {
       ply: answers.ply,
       quantity: Number(answers.quantity),
       printing: answers.printing,
+      location: answers.location,
+      outside_area: answers.outsideArea,
       name: answers.name, phone: answers.phone,
       company: answers.company, email: answers.email,
       website: answers.website, // honeypot
@@ -50,7 +54,7 @@ export default function QuotePage() {
   if (status === "sent") return <div className="site-grid px-5 py-20 md:px-10"><div className="mx-auto max-w-2xl">
     <div className="eyebrow">Request received</div>
     <h1 className="mt-5 text-3xl md:text-4xl">We will come back to you within {site.quoteSla}.</h1>
-    <p className="mt-6 text-lg text-ink-soft">Your request is with the factory team. We have your box format, size, ply, quantity and printing requirement, and will reply with a written specification and price.</p>
+    <p className="mt-6 text-lg text-ink-soft">Your request is with the factory team. We have your box format, size, ply, quantity, printing and delivery area, and will reply with a written specification and price.</p>
     <Link href="/" className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Back to home</Link>
   </div></div>;
 
@@ -103,7 +107,20 @@ export default function QuotePage() {
     <div key="details">
       <h2 className="text-2xl md:text-3xl">Where should we send the quote?</h2>
       <p className="mt-3 text-ink-soft">Phone is required. Email lets us send the written specification.</p>
-      <div className="mt-8 grid max-w-2xl gap-5 sm:grid-cols-2">{([
+      <div className="mt-8 grid max-w-2xl gap-5 sm:grid-cols-2">
+        <label className="eyebrow sm:col-span-2">City / delivery area *
+          <select required value={answers.location} onChange={(e) => { update("location", e.target.value); update("outsideArea", ""); }} className={field}>
+            <option value="">Choose an area</option>
+            {deliveryAreas.locations.map((location) => <option key={location.value} value={location.value}>
+              {location.requiresDetail ? location.city : `${location.area}, ${location.city}`}
+            </option>)}
+          </select>
+        </label>
+        {deliveryAreas.locations.find((item) => item.value === answers.location)?.requiresDetail && <label className="eyebrow sm:col-span-2">City or delivery area outside Hyderabad *
+          <input required maxLength={120} value={answers.outsideArea} onChange={(e) => update("outsideArea", e.target.value)} autoComplete="address-level2" className={field} />
+          <span className="mt-2 block font-sans text-xs font-normal normal-case tracking-normal text-ink-soft">We do not serve this area today, but we will keep the request for delivery planning.</span>
+        </label>}
+        {([
         { key: "name", label: "Your name", required: true, type: "text", autoComplete: "name" },
         { key: "phone", label: "Phone number", required: true, type: "tel", autoComplete: "tel" },
         { key: "company", label: "Company", required: false, type: "text", autoComplete: "organization" },
@@ -122,6 +139,11 @@ export default function QuotePage() {
     ["Ply", answers.ply || "Not chosen"],
     ["Quantity", answers.quantity ? `${answers.quantity} boxes` : "Not chosen"],
     ["Printing", answers.printing || "Not chosen"],
+    ["Delivery", (() => {
+      const location = deliveryAreas.locations.find((item) => item.value === answers.location);
+      if (!location) return "Not chosen";
+      return location.requiresDetail ? (answers.outsideArea || "Outside Hyderabad") : `${location.area}, ${location.city}`;
+    })()],
     ["Contact", answers.phone || "Not chosen"],
   ];
 
