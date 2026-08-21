@@ -74,6 +74,38 @@ Grades: **A** ≥ 78, **B** ≥ 62, **C** ≥ 45, **D** below. **X** is disquali
 a packaging company (competitor), no location on record, or outside the delivery
 area. Disqualified rows are kept so the next run does not re-harvest them.
 
+## Named purchasing contacts
+
+A company website publishes its board, not its purchase manager. The person who
+signs a packaging PO is found through their own public professional profile, so
+`people.mjs` searches for one buying role per company and keeps it only if:
+
+- the role is **current** — a finished role is never offered as a contact; and
+- the company name matches **exactly**. `SMS Lifesciences` is a different
+  business from `SMS Pharmaceuticals`, and a name filed against the wrong one is
+  worse than no name, because somebody will actually ring it. A partial match is
+  stored but flagged `near` in the dashboard as a prompt to check.
+
+Procurement titles outrank the board: `Head of Procurement` (98) > `Purchase
+Manager` (95) > `Managing Director` (75). A named buyer is most of the
+reachability term, so finding one moves the grade.
+
+**It never guesses an email from a name.** `firstname@company.com` is the
+standard lead-generation trick and it is fabrication — the address is invented,
+not observed. A name with no published address stays a name plus a switchboard
+number to call through.
+
+```bash
+# With EXA_API_KEY set, runs inside the normal sweep, no extra step.
+node scripts/leads/people.mjs --limit 25
+
+# Without a key: emit the searches, have an agent run them, feed results back.
+node scripts/leads/people.mjs --queries --limit 15 > queries.json
+node scripts/leads/people.mjs --ingest buyers.json
+```
+
+`--ingest` re-scores each row it touches, so a new contact updates the grade.
+
 ## The rules this pipeline is built on
 
 1. **Nothing is invented.** Every phone number, email and name is extracted from
@@ -96,6 +128,7 @@ area. Disqualified rows are kept so the next run does not re-harvest them.
 | `run.mjs` | Orchestration and CLI |
 | `sources/factoriesindia.mjs` | Discovery: the factory register, by industry and district |
 | `enrich.mjs` | Phone/email/person extraction from a company's own site |
+| `people.mjs` | Named buying contacts from public professional profiles |
 | `score.mjs` | The corrugated-buyer model, and why each term is weighted as it is |
 | `test.mjs` | `node scripts/leads/test.mjs` — asserts the extractors on fixed input |
 

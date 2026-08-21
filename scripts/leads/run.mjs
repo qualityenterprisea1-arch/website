@@ -22,6 +22,7 @@
 import { harvest, INDUSTRIES, DISTRICTS } from "./sources/factoriesindia.mjs";
 import { enrichSite, normalisePhone, isFreeMail } from "./enrich.mjs";
 import { scoreProspect } from "./score.mjs";
+import { findBuyers } from "./people.mjs";
 
 /* ------------------------------------------------------------------- args */
 
@@ -144,7 +145,13 @@ async function buildProspect(row) {
     .filter((e) => !isFreeMail(e.email) || e.score >= 70)
     .sort((a, b) => b.score - a.score);
 
-  const best = site.people[0] || null;
+  /* A company site publishes its board, not its purchase manager. Public
+     professional profiles are where the person who signs the PO actually is,
+     so they outrank anything scraped off an About page. Inert without
+     EXA_API_KEY - see scripts/leads/people.mjs. */
+  const buyers = await findBuyers(row.company_name, row.city || "Hyderabad");
+  const people = [...buyers, ...site.people];
+  const best = people[0] || null;
 
   /* The directory titles many rows by plant - "Plant 1", "Api Hyderabad 3" -
      which is not a name anyone can use on a call. Prefer what the company calls
@@ -177,13 +184,13 @@ async function buildProspect(row) {
     contact_phone: phones[0]?.phone || null,
     phones,
     emails,
-    contacts: site.people,
+    contacts: people,
     plants: row.plants || 1,
     source: row.source,
     source_url: row.source_url,
   };
 
-  const scored = scoreProspect({ ...prospect, people: site.people });
+  const scored = scoreProspect({ ...prospect, people });
   return {
     ...prospect,
     score_total: scored.total,
@@ -195,7 +202,7 @@ async function buildProspect(row) {
     is_verified: false,
     score: scored,
     analysis: { plants: prospect.plants, addresses: row.addresses || [] },
-    evidence: { pages_crawled: site.pages, people_found: site.people, site_reachable: site.ok, reason: site.reason || null },
+    evidence: { pages_crawled: site.pages, people_found: people, buyers_from_profiles: buyers.length, site_reachable: site.ok, reason: site.reason || null },
     last_enriched_at: new Date().toISOString(),
   };
 }

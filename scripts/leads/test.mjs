@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { extractPhones, extractEmails, extractPeople, normalisePhone, siteName, isFreeMail } from "./enrich.mjs";
 import { proximity, packagingFit, reachability, scoreProspect, disqualify } from "./score.mjs";
 import { parseListing } from "./sources/factoriesindia.mjs";
+import { companyMatch, buyingAuthority, pickBuyers } from "./people.mjs";
 
 let pass = 0;
 const it = (name, fn) => { try { fn(); pass++; } catch (e) { console.error(`FAIL  ${name}\n      ${e.message}`); process.exitCode = 1; } };
@@ -175,6 +176,42 @@ it("grades a near, reachable, carton-heavy plant top and a far anonymous one bot
   assert.ok(best.total <= 100 && worst.total >= 0);
   // The breakdown must explain itself - a score with no reason is not reviewable.
   for (const term of Object.values(best.breakdown)) assert.ok(term.why && term.why.length > 3);
+});
+
+/* ------------------------------------------------ named buying contacts */
+
+it("treats a similarly-named company as a different company", () => {
+  // The real trap: both exist, both are in Hyderabad, both start "SMS".
+  assert.equal(companyMatch("SMS Pharmaceuticals Limited", "SMS PHARMACEUTICALS LIMITED"), "exact");
+  assert.equal(companyMatch("SMS Pharmaceuticals Limited", "SMS LIFESCIENCES INDIA PRIVATE LIMITED"), "none");
+  assert.equal(companyMatch("Shilpa Medicare Ltd.", "Shilpa Medicare Limited"), "exact");
+  assert.equal(companyMatch("Granules India Limited", "Granules India Ltd"), "exact");
+});
+
+it("ranks procurement titles above the board", () => {
+  assert.ok(buyingAuthority("Head of Procurement") > buyingAuthority("Managing Director"));
+  assert.ok(buyingAuthority("Purchase Manager") > buyingAuthority("Chairman"));
+  assert.ok(buyingAuthority("DGM Purchase") > buyingAuthority("Sr Executive-Procurement"));
+  assert.equal(buyingAuthority("QA Chemist"), null, "not a buying role");
+});
+
+it("keeps only current roles at the right company", () => {
+  const results = [
+    { title: "Sms Srinivas", url: "https://in.linkedin.com/in/sms-srinivas",
+      highlights: ["### [SMS PHARMACEUTICALS LIMITED](https://www.linkedin.com/company/sms-pharmaceuticals-limited)\n#### Purchase Manager (Current)"] },
+    // Same title, but the role ended - must not be offered as a contact.
+    { title: "Old Buyer", url: "https://in.linkedin.com/in/old-buyer",
+      highlights: ["### [SMS PHARMACEUTICALS LIMITED](https://www.linkedin.com/company/sms-pharmaceuticals-limited)\n#### Purchase Manager"] },
+    // Current, but at the confusingly-named other company.
+    { title: "Rahul Kanth", url: "https://in.linkedin.com/in/rahul-kanth",
+      highlights: ["### [SMS LIFESCIENCES INDIA PRIVATE LIMITED](https://www.linkedin.com/company/sms-lifesciences-india-private-limited)\n#### Deputy Manager Purchase (Current)"] },
+  ];
+  const buyers = pickBuyers(results, "Sms Pharmaceuticals Limited");
+  assert.equal(buyers.length, 1, `expected only the current SMS Pharma buyer, got ${JSON.stringify(buyers.map((b) => b.name))}`);
+  assert.equal(buyers[0].name, "Sms Srinivas");
+  assert.equal(buyers[0].company_match, "exact");
+  assert.ok(buyers[0].source_url.includes("linkedin"), "a name must carry the profile it came from");
+  assert.equal(buyers[0].verified, false, "nothing scraped is verified until a human says so");
 });
 
 console.log(`${pass} checks passed${process.exitCode ? " (with failures above)" : ""}`);
