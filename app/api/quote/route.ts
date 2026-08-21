@@ -79,7 +79,8 @@ async function notify(row: Row) {
     }),
   });
   if (!res.ok) return { sent: false, reason: `resend ${res.status}: ${(await res.text()).slice(0, 300)}` };
-  return { sent: true };
+  const { id } = (await res.json().catch(() => ({}))) as { id?: string };
+  return { sent: true, id };
 }
 
 const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -113,7 +114,8 @@ export async function POST(request: Request) {
   // never turns into an error response — it is logged and the caller still wins.
   try {
     const n = await notify(row);
-    if (!n.sent) console.warn("[quote] notification not sent:", n.reason);
+    if (n.sent) console.log("[quote] notification sent, resend id", n.id);
+    else console.warn("[quote] notification not sent:", n.reason);
   } catch (e) {
     console.error("[quote] notification threw", e);
   }
