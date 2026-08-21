@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, Instrument_Sans, Space_Mono } from "next/font/google";
+import { Instrument_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { MobileBar } from "@/components/MobileBar";
@@ -7,7 +7,6 @@ import { Footer } from "@/components/Footer";
 import { site } from "@/content/site";
 import { siteUrl } from "@/content/seo";
 
-const anton = Anton({ subsets: ["latin"], weight: "400", variable: "--font-anton", display: "swap" });
 const instrument = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument", display: "swap" });
 const mono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-mono", display: "swap" });
 
@@ -23,5 +22,5 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const jsonLd = { "@context": "https://schema.org", "@type": ["Organization", "LocalBusiness"], "@id": `${siteUrl}#organization`, name: site.name, url: siteUrl, address: { "@type": "PostalAddress", streetAddress: "Narsingi", addressLocality: "Hyderabad", addressRegion: "Telangana", postalCode: "500089", addressCountry: "IN" }, areaServed: "Hyderabad", openingHours: site.hours };
-  return <html lang="en"><body className={`${anton.variable} ${instrument.variable} ${mono.variable}`}><Header /><main>{children}</main><Footer /><MobileBar /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /></body></html>;
+  return <html lang="en"><body className={`${instrument.variable} ${mono.variable}`}><Header /><main>{children}</main><Footer /><MobileBar /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /></body></html>;
 }

@@ -5,8 +5,31 @@ import { pageMetadata, breadcrumbSchema, jsonLdScript } from "@/content/seo";
 
 export const metadata = pageMetadata("Contact Quality Enterprises", "Contact Quality Enterprises in Narsingi, Hyderabad about corrugated packaging formats, board construction and a written B2B quote.", "/contact");
 
+const pending = (v: string) => v.toLowerCase().includes("pending");
+
 export default function ContactPage() {
-  const phoneReady = !site.phone.toLowerCase().includes("pending");
-  const whatsappReady = !site.whatsapp.toLowerCase().includes("pending");
-  return <div className="site-grid min-h-[calc(100dvh-78px)] px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1200px]"><SectionIntro eyebrow="Contact the factory" title="Talk to the people who make the box." body="Send the basics and we will come back with a written answer. Or visit us in Narsingi." /><div className="mt-12 grid gap-5 md:grid-cols-[1fr_1.2fr]"><div className="card bg-paper p-6"><div className="grid gap-6">{[["Address", site.address], ["Phone", site.phone], ["Email", site.email], ["GSTIN", site.gstin], ["Hours", site.hours]].map(([label, value]) => <div key={label}><div className="mono text-xs uppercase tracking-[.14em] text-ink-soft">{label}</div><div className="mt-1 font-bold">{value}</div></div>)}</div><div className="mt-8 flex flex-wrap gap-3">{phoneReady && <a href={`tel:${site.phone}`} className="pill focus-ring bg-kraft px-5 py-3 font-bold">Call us</a>}{whatsappReady && <a href={`https://wa.me/${site.whatsapp}`} className="pill focus-ring bg-ultra px-5 py-3 font-bold text-paper">WhatsApp</a>}<Link href="/quote" className="pill focus-ring bg-paper px-5 py-3 font-bold">Get a quote</Link></div></div><div className="card grid min-h-[420px] place-items-center bg-[#D7D4CB] p-6 text-center"><div><div className="mono text-xs uppercase tracking-[.14em]">Map embed slot</div><p className="mt-3 max-w-sm text-ink-soft">The Narsingi factory map will be embedded here once the verified Google Business Profile pin is supplied.</p></div></div></div><script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbSchema([{ name: "Home", path: "" }, { name: "Contact", path: "/contact" }]))} /></div></div>;
+  // Contact rows are omitted rather than shown as "pending" until the real values land.
+  const rows: [string, string][] = [["Address", site.address], ["Hours", site.hours],
+    ...([["Phone", site.phone], ["Email", site.email], ["GSTIN", site.gstin]] as [string, string][]).filter(([, v]) => !pending(v))];
+
+  return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1100px]">
+    <SectionIntro as="h1" eyebrow="Contact the factory" title="Talk to the people who make the box." body="Send the basics and we will come back with a written answer, or visit the unit in Narsingi." />
+    <div className="mt-12 grid gap-5 md:grid-cols-2">
+      <div className="card p-7">
+        <h2 className="text-xl font-semibold">Factory details</h2>
+        <dl className="mt-6 grid gap-5">{rows.map(([label, value]) => <div key={label}>
+          <dt className="eyebrow">{label}</dt><dd className="mt-1 font-medium">{value}</dd>
+        </div>)}</dl>
+        {!pending(site.phone) && <a href={`tel:${site.phone}`} className="pill pill-outline focus-ring mt-8 inline-flex px-5 py-3 text-sm font-semibold">Call the factory</a>}
+      </div>
+      <div className="card p-7">
+        <h2 className="text-xl font-semibold">The fastest way to get a price</h2>
+        <p className="mt-4 text-ink-soft">Six short questions covering format, size, ply, quantity and printing. We reply with a written specification and price within {site.quoteSla}.</p>
+        <p className="mt-4 text-ink-soft">Minimum order is {site.moq}. If you need something outside the standard range, tell us the load and the handling route and we will say what can run.</p>
+        <Link href="/quote" className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
+      </div>
+    </div>
+    <p className="mt-8 max-w-2xl text-sm text-ink-soft">Visits are welcome by appointment during working hours so someone from the line is free to walk you through the machines.</p>
+    <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbSchema([{ name: "Home", path: "" }, { name: "Contact", path: "/contact" }]))} />
+  </div></div>;
 }

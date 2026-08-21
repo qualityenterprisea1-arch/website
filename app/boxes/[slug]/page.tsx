@@ -7,4 +7,29 @@ import { pageMetadata, breadcrumbSchema, jsonLdScript } from "@/content/seo";
 
 export function generateStaticParams() { return boxTypes.map(({ slug }) => ({ slug })); }
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> { const { slug } = await params; const item = getBoxType(slug); return item ? pageMetadata(`${item.name} for Business`, `${item.description} Request a specification for your product, handling method and delivery requirements.`, `/boxes/${item.slug}`) : pageMetadata("Box format", "Corrugated packaging format details.", "/boxes"); }
-export default async function BoxDetail({ params }: { params: Promise<{ slug: string }> }) { const { slug } = await params; const item = getBoxType(slug); if (!item) notFound(); const productSchema = { "@context": "https://schema.org", "@type": "Product", name: item.name, description: item.description, category: "Corrugated packaging", material: "Corrugated board", brand: { "@type": "Brand", name: "Quality Enterprises" } }; return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[.8fr_1.2fr] lg:items-center"><div className="relative aspect-square overflow-hidden rounded-full border-2 border-ink bg-white"><Image src={item.image} alt={item.name} fill priority sizes="(max-width: 1024px) 100vw, 40vw" className="object-contain" /></div><div><div className="eyebrow">Packaging format</div><h1 className="mt-5 text-6xl md:text-8xl">{item.name}</h1><p className="mt-6 max-w-xl text-xl text-ink-soft">{item.description}</p><div className="mt-10 grid gap-5 sm:grid-cols-2"><div className="card bg-paper p-5"><div className="mono text-xs uppercase tracking-[.12em]">Best for</div><div className="mt-2 text-xl font-bold">{item.bestFor}</div></div><div className="card bg-paper p-5"><div className="mono text-xs uppercase tracking-[.12em]">Construction</div><div className="mt-2 text-xl font-bold">{item.ply}</div></div></div><p className="mt-8 text-ink-soft">Tell us your internal dimensions, quantity and handling requirement. The quote will come back with the construction stated clearly.</p><Link href={`/quote?box=${item.slug}`} className="pill focus-ring mt-8 inline-flex bg-ultra px-7 py-4 font-bold text-paper">Quote this format ↗</Link></div></div><script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(productSchema)} /><script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbSchema([{ name: "Home", path: "" }, { name: "Box formats", path: "/boxes" }, { name: item.name, path: `/boxes/${item.slug}` }]))} /></div>; }
+
+export default async function BoxDetail({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const item = getBoxType(slug);
+  if (!item) notFound();
+  const productSchema = { "@context": "https://schema.org", "@type": "Product", name: item.name, description: item.description, category: "Corrugated packaging", material: "Corrugated board", brand: { "@type": "Brand", name: "Quality Enterprises" } };
+  return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1200px]">
+    <nav className="eyebrow"><Link href="/boxes" className="focus-ring hover:text-ink">Box formats</Link> <span aria-hidden="true">/</span> {item.name}</nav>
+    <div className="mt-8 grid gap-12 lg:grid-cols-[280px_1fr] lg:items-start">
+      {/* Reference crops are 172px masters — panel kept small so they are not upscaled past ~1.5x. */}
+      <div className="card relative aspect-square w-full max-w-[280px] overflow-hidden bg-white"><Image src={item.image} alt={item.name} fill priority sizes="280px" className="object-contain" /></div>
+      <div>
+        <h1 className="text-3xl md:text-4xl">{item.name}</h1>
+        <p className="mt-5 max-w-xl text-lg text-ink-soft">{item.description}</p>
+        <dl className="mt-8 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2">
+          <div className="bg-paper p-5"><dt className="eyebrow">Best for</dt><dd className="mt-2 font-medium">{item.bestFor}</dd></div>
+          <div className="bg-paper p-5"><dt className="eyebrow">Construction</dt><dd className="mt-2 font-medium">{item.ply}</dd></div>
+        </dl>
+        <p className="mt-8 max-w-xl text-ink-soft">Tell us your internal dimensions, quantity and handling requirement. The quote comes back with the construction stated clearly.</p>
+        <Link href={`/quote?box=${item.slug}`} className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Quote this format</Link>
+      </div>
+    </div>
+    <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(productSchema)} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbSchema([{ name: "Home", path: "" }, { name: "Box formats", path: "/boxes" }, { name: item.name, path: `/boxes/${item.slug}` }]))} />
+  </div></div>;
+}

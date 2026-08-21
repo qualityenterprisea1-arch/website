@@ -14,16 +14,19 @@ baton means the next agent redoes your work.
 
 ```
 LAST AGENT     : Claude (Opus 5)
-DATE           : 2026-08-20
-LAST COMMIT    : 2192420  Baseline: spec + board wireframe prototype
-BUILD PHASE    : Pre-Phase-1. No Next.js app scaffolded yet. Repo holds SPEC + prototype only.
-WORKING        : board-wireframe-sequence.html — desktop scroll sequence, all 5 beats,
-                 forward and backward scrub. Verified in Chrome at 1440x900.
-BROKEN         : same file — observer stops driving the timeline after it completes (see
-                 DEAD ENDS #4). Blocks SPEC Phase 3, blocks nothing else.
-NEXT ACTION    : Either (a) fix the observer freeze, or (b) leave §6 alone and scaffold
-                 Phase 1 — they are independent. (b) is worth more; §6 is Phase 3 and the
-                 site is lead-capturing without it.
+DATE           : 2026-08-21
+LAST COMMIT    : (this session)
+BUILD PHASE    : Phases 1-3 built. Design system re-skinned for a professional B2B register.
+WORKING        : npm run build passes, 33 routes. axe-core wcag2a+aa: 0 violations across
+                 8 routes, verified. Exactly one h1 per page, verified. No console errors.
+                 Board scroll sequence verified at 1440x900; callouts no longer collide
+                 with the instrument panel.
+BROKEN         : Supabase not provisioned, so /quote now shows an explicit FAILURE state
+                 on submit instead of silently claiming success. This is intended and
+                 must stay until quote_requests + RLS exist.
+NEXT ACTION    : (a) Provision Supabase quote_requests with anon INSERT-only RLS and set
+                 NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY, or the form cannot capture leads.
+                 (b) Generate real product images: current masters are 172x170 crops.
 ```
 
 ---
@@ -210,3 +213,73 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **Quality rules:** Professional B2B corrugated packaging photography; consistent warm-white studio background; accurate folds, board thickness and construction; no logos, fake labels, people, watermarks, glossy plastic or toy-like renders. Generate separate images per product, inspect each one, and regenerate inaccurate outputs. Do not upscale the old 171–172px crops.
 **Verification:** Run `npm run build`, verify all 32 routes, and visually inspect the catalogue, homepage product rail and representative detail pages at mobile and desktop widths. Preserve About Us and unverified contact facts.
 **Current commits:** `1cd1859` mobile board/footer and SEO; `1bb34b6` optimized image pipeline and prompt pack.
+
+### 2026-08-21 · Claude (Opus 5) · DONE
+**Did:** User feedback was that the build read "too funky" and needed a professional
+register. Two kinds of work: real bugs, then a design pass.
+
+*Bugs found and fixed:*
+1. **Tailwind v4 was never wired to the theme.** `tailwind.config.ts` is not read by
+   Tailwind v4 without `@config`, and there was no `@theme` block, so EVERY brand colour
+   utility (`bg-ink`, `text-paper`, `bg-ultra`, `bg-kraft`, `text-ink-soft`) silently
+   resolved to nothing. Dark sections rendered light and blue CTAs rendered invisible.
+   Added `@theme` to `globals.css`; deleted the dead `tailwind.config.ts`.
+2. **`<!-- UNVERIFIED -->` rendered as literal on-page text** in the board-specs cards.
+   In JSX that string is content, not an HTML comment. Removed; the placeholder discipline
+   now lives in a source comment, and the section says the exact board is confirmed on the
+   written quote.
+3. **Internal build notes were customer-facing copy** — "working placeholders until the
+   machine sheet is confirmed", "photo slots stay honest until we have the right factory
+   images", "map will be embedded once the verified GBP pin is supplied", nine "Factory
+   photo slot / Real machine photograph to be added" boxes on /process. All removed.
+4. **/quote reported success on a failed write.** `try { fetch } finally { setSent(true) }`
+   meant a dropped request still told the buyer we had their enquiry. Now has explicit
+   sending/sent/failed states; a failure tells them it did not send and offers /contact.
+5. **Board callouts collided with the instrument panel** at 7 ply (BASE LINER was clipped).
+   Moved the panel to bottom-left, away from the right-hand callout column.
+6. **Board heading was clipped under the sticky header** — top offset raised.
+7. Missing favicon (404) — added `app/icon.svg`.
+8. Five routes had no `h1` (SectionIntro always emitted `h2`). Added an `as` prop.
+
+*Design pass — the "funky" was concentrated in four decisions:*
+- Anton condensed poster caps at up to 128px. Dropped Anton entirely; headings are now
+  Instrument Sans, sentence case, and the Tailwind display scale (`--text-3xl`..`8xl`)
+  was retuned downward in `@theme` so every existing size utility shrank in one place
+  rather than editing 20 files.
+- Neo-brutalist cards: 2px ink borders + `6px 6px 0` hard kraft shadows + 18px radius.
+  Now 1px hairline, 10px radius, no shadow.
+- Graph-paper background texture sitewide. Removed.
+- Strawman comparison table ("Typical Hyderabad plant" ✕ vs us ✓). This also carried the
+  unverified "competitors start at 5,000" claim SPEC §11 flagged. Replaced with a
+  commitments list stating only what we actually promise.
+- Also: circular product image on box detail → rectangular frame; kraft header band →
+  paper with a hairline rule; electric `#1D3FBF` → `#14407A`; zigzag translate on /process
+  → a clean numbered list.
+
+*Image quality:* product masters are 172x170 crops. They were being upscaled ~3x into
+large panels, which showed a baked-in artifact line. Detail-page panel capped at 280px so
+they render near native. Fresh generation is still the real fix.
+
+**Files:** `app/globals.css`, `app/layout.tsx`, `app/icon.svg` (new), `app/page.tsx`,
+`app/quote/page.tsx`, `app/contact/page.tsx`, `app/process/page.tsx`, `app/works/page.tsx`,
+`app/about/page.tsx`, `app/boxes/page.tsx`, `app/boxes/[slug]/page.tsx`,
+`components/{Header,Footer,Faq,MobileBar,SectionIntro,HeroBoxes}.tsx`.
+Deleted: `tailwind.config.ts` (dead under Tailwind v4).
+
+**Verified how:** `npx tsc --noEmit` clean. `npm run build` passes, 33 routes prerendered.
+Playwright at 1440x900 and 375x812 across /, /boxes, /quote, /contact, /process, /works,
+/about, /boxes/kraft-shipping-boxes — screenshots read and reviewed, including a five-point
+scroll sweep of the board section. axe-core wcag2a+wcag2aa: **0 violations on all 8 routes**;
+h1 count is exactly 1 on each; zero console errors. `getComputedStyle` on `.bg-ink`
+confirmed the colour bug before the fix and the fix after.
+
+**Left broken:** Supabase still unprovisioned — /quote deliberately fails loudly now.
+PHONE/WHATSAPP/EMAIL/GSTIN still pending; contact rows for them are omitted rather than
+shown as "pending". Product images still 172px crops. Board section not driven at 375px
+by a real touch scroll (the mobile path is the static scroll-snap panels, screenshotted only).
+
+**For the next agent:** Do not reintroduce Anton, hard offset shadows, the graph-paper
+background, or the competitor-comparison table — those were the specific things the user
+called funky. Keep `@theme` as the single source of colour and display scale; there is no
+`tailwind.config.ts` any more. Keep the /quote failure state until Supabase is live.
+

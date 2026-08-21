@@ -6,3 +6,5 @@ node_modules/
 .playwright-mcp/
 *.png
 !public/products/*.png
+tsconfig.tsbuildinfo
+shots/

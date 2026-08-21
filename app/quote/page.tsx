@@ -3,22 +3,138 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { boxTypes } from "@/content/boxTypes";
+import { site } from "@/content/site";
 
 type Answers = { boxType: string; length: string; width: string; height: string; unit: "mm" | "in"; ply: string; quantity: string; printing: string; name: string; phone: string; company: string; email: string };
 const initial: Answers = { boxType: "", length: "", width: "", height: "", unit: "mm", ply: "", quantity: "500", printing: "", name: "", phone: "", company: "", email: "" };
 
+const MOQ = 500;
+const field = "focus-ring mt-2 w-full rounded-md border border-line bg-white px-3 py-2.5 text-base outline-none transition-colors focus:border-ink";
+const choice = (selected: boolean) => `card focus-ring p-4 text-left transition-colors ${selected ? "border-ultra bg-ultra text-paper" : "hover:border-ink"}`;
+
 export default function QuotePage() {
-  const [answers, setAnswers] = useState<Answers>(initial); const [step, setStep] = useState(0); const [sent, setSent] = useState(false); const update = (key: keyof Answers, value: string) => setAnswers((a) => ({ ...a, [key]: value }));
-  const canNext = useMemo(() => { if (step === 0) return !!answers.boxType; if (step === 1) return !!answers.length && !!answers.width && !!answers.height; if (step === 2) return !!answers.ply; if (step === 3) return Number(answers.quantity) >= 500; if (step === 4) return !!answers.printing; return !!answers.name && !!answers.phone; }, [answers, step]);
-  const submit = async () => { try { const url = process.env.NEXT_PUBLIC_SUPABASE_URL; const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; if (url && key) await fetch(`${url}/rest/v1/quote_requests`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ ...answers, quantity: Number(answers.quantity), created_at: new Date().toISOString() }) }); } finally { setSent(true); } };
-  if (sent) return <div className="site-grid min-h-[calc(100dvh-78px)] px-5 py-20 md:px-10"><div className="mx-auto max-w-3xl"><div className="eyebrow">Request received</div><h1 className="mt-5 text-6xl md:text-8xl">We will call you within 4 working hours.</h1><p className="mt-7 max-w-xl text-lg text-ink-soft">Your request is with the factory team. Keep your phone close. We have captured the box type, size, ply, quantity and printing details you entered.</p><Link href="/" className="pill focus-ring mt-8 inline-flex bg-ultra px-7 py-4 font-bold text-paper">Back to home</Link></div></div>;
+  const [answers, setAnswers] = useState<Answers>(initial);
+  const [step, setStep] = useState(0);
+  const [status, setStatus] = useState<"editing" | "sending" | "sent" | "failed">("editing");
+  const update = (key: keyof Answers, value: string) => setAnswers((a) => ({ ...a, [key]: value }));
+
+  const canNext = useMemo(() => {
+    if (step === 0) return !!answers.boxType;
+    if (step === 1) return !!answers.length && !!answers.width && !!answers.height;
+    if (step === 2) return !!answers.ply;
+    if (step === 3) return Number(answers.quantity) >= MOQ;
+    if (step === 4) return !!answers.printing;
+    return !!answers.name.trim() && !!answers.phone.trim();
+  }, [answers, step]);
+
+  // A failed write must surface. Reporting success on a dropped request loses the lead silently.
+  const submit = async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) { setStatus("failed"); return; }
+    setStatus("sending");
+    try {
+      const res = await fetch(`${url}/rest/v1/quote_requests`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ ...answers, quantity: Number(answers.quantity), created_at: new Date().toISOString() }) });
+      setStatus(res.ok ? "sent" : "failed");
+    } catch { setStatus("failed"); }
+  };
+
+  if (status === "sent") return <div className="site-grid px-5 py-20 md:px-10"><div className="mx-auto max-w-2xl">
+    <div className="eyebrow">Request received</div>
+    <h1 className="mt-5 text-3xl md:text-4xl">We will come back to you within {site.quoteSla}.</h1>
+    <p className="mt-6 text-lg text-ink-soft">Your request is with the factory team. We have your box format, size, ply, quantity and printing requirement, and will reply with a written specification and price.</p>
+    <Link href="/" className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Back to home</Link>
+  </div></div>;
+
+  if (status === "failed") return <div className="site-grid px-5 py-20 md:px-10"><div className="mx-auto max-w-2xl">
+    <div className="eyebrow">Request not sent</div>
+    <h1 className="mt-5 text-3xl md:text-4xl">Something went wrong on our side.</h1>
+    <p className="mt-6 text-lg text-ink-soft">Your request did not reach us, so please do not assume it is in the queue. Try again in a moment, or reach the factory directly and we will take the details down.</p>
+    <div className="mt-8 flex flex-wrap gap-3">
+      <button onClick={() => setStatus("editing")} className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Try again</button>
+      <Link href="/contact" className="pill pill-outline focus-ring px-6 py-3 font-semibold">Contact the factory</Link>
+    </div>
+  </div></div>;
+
   const steps = [
-    <div key="box"><h1 className="text-5xl md:text-7xl">Which packaging format do you need?</h1><p className="mt-4 text-ink-soft">Choose the closest format. We can refine the construction with your operations team.</p><div className="mt-8 grid gap-3 sm:grid-cols-2">{boxTypes.map((item) => <button key={item.slug} onClick={() => update("boxType", item.name)} className={`card focus-ring min-h-24 p-4 text-left transition-transform hover:-translate-y-1 ${answers.boxType === item.name ? "bg-ultra text-paper" : "bg-paper"}`}><span className="font-bold">{item.name}</span><span className="mt-1 block text-sm opacity-75">{item.short}</span></button>)}</div></div>,
-    <div key="size"><h1 className="text-5xl md:text-7xl">What size is the box?</h1><p className="mt-4 text-ink-soft">Enter the internal length, width and height.</p><div className="mt-8 grid grid-cols-3 gap-3">{[["length", "Length"], ["width", "Width"], ["height", "Height"]].map(([key, label]) => <label key={key} className="mono text-xs uppercase tracking-[.12em]">{label}<input value={answers[key as keyof Answers] as string} onChange={(e) => update(key as keyof Answers, e.target.value)} inputMode="decimal" className="focus-ring mt-2 w-full border-b-2 border-ink bg-transparent px-1 py-3 text-xl font-bold outline-none" /></label>)}</div><div className="mt-6 flex gap-2">{["mm", "in"].map((unit) => <button key={unit} onClick={() => setAnswers((a) => ({ ...a, unit: unit as "mm" | "in" }))} className={`pill focus-ring px-4 py-2 text-sm font-bold ${answers.unit === unit ? "bg-ink text-paper" : "bg-paper"}`}>{unit}</button>)}</div></div>,
-    <div key="ply"><h1 className="text-5xl md:text-7xl">How much wall?</h1><p className="mt-4 text-ink-soft">The ply changes the stiffness and load the box can handle.</p><div className="mt-8 grid gap-3 sm:grid-cols-3">{[["3 ply", "Everyday cartons"], ["5 ply", "More protection"], ["7 ply", "Heavy loads"]].map(([ply, hint]) => <button key={ply} onClick={() => update("ply", ply)} className={`card focus-ring p-5 text-left ${answers.ply === ply ? "bg-ultra text-paper" : "bg-paper"}`}><span className="text-3xl font-bold">{ply}</span><span className="mt-2 block text-sm opacity-75">{hint}</span></button>)}</div></div>,
-    <div key="quantity"><h1 className="text-5xl md:text-7xl">How many boxes?</h1><p className="mt-4 text-ink-soft">Our minimum order is 500 boxes.</p><label className="mt-10 block max-w-sm"><span className="mono text-xs uppercase tracking-[.12em]">Quantity</span><input value={answers.quantity} onChange={(e) => update("quantity", e.target.value)} type="number" min="500" className="focus-ring mt-2 w-full border-b-2 border-ink bg-transparent py-3 text-4xl font-bold outline-none" /></label>{Number(answers.quantity) < 500 && <p className="mt-3 font-bold text-[#D6402F]">Please enter at least 500 boxes.</p>}</div>,
-    <div key="printing"><h1 className="text-5xl md:text-7xl">Do you need printing?</h1><p className="mt-4 text-ink-soft">We will confirm coverage and colours before production.</p><div className="mt-8 grid gap-3 sm:grid-cols-2">{["None", "1 colour", "2 colour", "Full colour"].map((printing) => <button key={printing} onClick={() => update("printing", printing)} className={`card focus-ring p-5 text-left font-bold ${answers.printing === printing ? "bg-ultra text-paper" : "bg-paper"}`}>{printing}</button>)}</div></div>,
-    <div key="details"><h1 className="text-5xl md:text-7xl">Where should we send the quote?</h1><p className="mt-4 text-ink-soft">Phone is required. Email helps us send the written spec.</p><div className="mt-8 grid gap-5 sm:grid-cols-2">{([{ key: "name", label: "Your name", required: true }, { key: "phone", label: "Phone number", required: true }, { key: "company", label: "Company", required: false }, { key: "email", label: "Email", required: false }] satisfies { key: keyof Answers; label: string; required: boolean }[]).map((field) => <label key={field.key} className="mono text-xs uppercase tracking-[.12em]">{field.label}{field.required ? " *" : ""}<input required={field.required} value={answers[field.key]} onChange={(e) => update(field.key, e.target.value)} className="focus-ring mt-2 w-full border-b-2 border-ink bg-transparent px-1 py-3 font-bold outline-none" /></label>)}</div></div>,
+    <div key="box">
+      <h2 className="text-2xl md:text-3xl">Which packaging format do you need?</h2>
+      <p className="mt-3 text-ink-soft">Choose the closest format. We can refine the construction with your operations team.</p>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">{boxTypes.map((item) => <button key={item.slug} type="button" aria-pressed={answers.boxType === item.name} onClick={() => update("boxType", item.name)} className={choice(answers.boxType === item.name)}>
+        <span className="font-medium">{item.name}</span><span className="mt-1 block text-sm opacity-75">{item.short}</span>
+      </button>)}</div>
+    </div>,
+    <div key="size">
+      <h2 className="text-2xl md:text-3xl">What size is the box?</h2>
+      <p className="mt-3 text-ink-soft">Enter the internal length, width and height.</p>
+      <div className="mt-8 grid max-w-lg grid-cols-3 gap-4">{([["length", "Length"], ["width", "Width"], ["height", "Height"]] as const).map(([key, label]) => <label key={key} className="eyebrow">{label}
+        <input value={answers[key]} onChange={(e) => update(key, e.target.value)} inputMode="decimal" className={field} />
+      </label>)}</div>
+      <div className="mt-6 flex gap-2">{(["mm", "in"] as const).map((unit) => <button key={unit} type="button" aria-pressed={answers.unit === unit} onClick={() => setAnswers((a) => ({ ...a, unit }))} className={`pill focus-ring px-4 py-2 text-sm font-semibold ${answers.unit === unit ? "bg-ink text-paper" : "pill-outline"}`}>{unit}</button>)}</div>
+    </div>,
+    <div key="ply">
+      <h2 className="text-2xl md:text-3xl">How much wall does it need?</h2>
+      <p className="mt-3 text-ink-soft">The ply changes the stiffness and the load the box can carry.</p>
+      <div className="mt-8 grid gap-3 sm:grid-cols-3">{[["3 ply", "Everyday cartons"], ["5 ply", "More protection"], ["7 ply", "Heavy loads"]].map(([ply, hint]) => <button key={ply} type="button" aria-pressed={answers.ply === ply} onClick={() => update("ply", ply)} className={choice(answers.ply === ply)}>
+        <span className="text-lg font-semibold">{ply}</span><span className="mt-1 block text-sm opacity-75">{hint}</span>
+      </button>)}</div>
+    </div>,
+    <div key="quantity">
+      <h2 className="text-2xl md:text-3xl">How many boxes?</h2>
+      <p className="mt-3 text-ink-soft">Our minimum order is {site.moq}.</p>
+      <label className="eyebrow mt-8 block max-w-xs">Quantity
+        <input value={answers.quantity} onChange={(e) => update("quantity", e.target.value)} type="number" min={MOQ} inputMode="numeric" aria-describedby="qty-note" className={field} />
+      </label>
+      {Number(answers.quantity) < MOQ && <p id="qty-note" role="alert" className="mt-3 text-sm font-medium text-[#B3261E]">Please enter at least {MOQ} boxes.</p>}
+    </div>,
+    <div key="printing">
+      <h2 className="text-2xl md:text-3xl">Do you need printing?</h2>
+      <p className="mt-3 text-ink-soft">We will confirm coverage and colours before production.</p>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">{["None", "1 colour", "2 colour", "Full colour"].map((printing) => <button key={printing} type="button" aria-pressed={answers.printing === printing} onClick={() => update("printing", printing)} className={`${choice(answers.printing === printing)} font-medium`}>{printing}</button>)}</div>
+    </div>,
+    <div key="details">
+      <h2 className="text-2xl md:text-3xl">Where should we send the quote?</h2>
+      <p className="mt-3 text-ink-soft">Phone is required. Email lets us send the written specification.</p>
+      <div className="mt-8 grid max-w-2xl gap-5 sm:grid-cols-2">{([
+        { key: "name", label: "Your name", required: true, type: "text", autoComplete: "name" },
+        { key: "phone", label: "Phone number", required: true, type: "tel", autoComplete: "tel" },
+        { key: "company", label: "Company", required: false, type: "text", autoComplete: "organization" },
+        { key: "email", label: "Email", required: false, type: "email", autoComplete: "email" },
+      ] satisfies { key: keyof Answers; label: string; required: boolean; type: string; autoComplete: string }[]).map((f) => <label key={f.key} className="eyebrow">{f.label}{f.required ? " *" : ""}
+        <input required={f.required} type={f.type} autoComplete={f.autoComplete} value={answers[f.key]} onChange={(e) => update(f.key, e.target.value)} className={field} />
+      </label>)}</div>
+    </div>,
   ];
-  return <div className="site-grid min-h-[calc(100dvh-78px)] px-5 py-12 md:px-10 md:py-20"><div className="mx-auto grid max-w-[1280px] gap-12 lg:grid-cols-[1fr_300px]"><div><div className="mono text-xs uppercase tracking-[.16em] text-ink-soft">Question {step + 1} of {steps.length}</div><div className="mt-5">{steps[step]}</div><div className="mt-10 flex items-center justify-between gap-4"><button disabled={step === 0} onClick={() => setStep((s) => s - 1)} className="pill focus-ring bg-paper px-5 py-3 font-bold disabled:opacity-30">Back</button>{step < steps.length - 1 ? <button disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="pill focus-ring bg-ultra px-7 py-3 font-bold text-paper disabled:cursor-not-allowed disabled:opacity-40">Next ↗</button> : <button disabled={!canNext} onClick={submit} className="pill focus-ring bg-ultra px-7 py-3 font-bold text-paper disabled:cursor-not-allowed disabled:opacity-40">Send request ↗</button>}</div></div><aside className="card h-fit bg-paper p-5 lg:sticky lg:top-28"><div className="eyebrow">Your spec</div><div className="mt-5 grid gap-4 text-sm">{[["Box", answers.boxType || "Not chosen"], ["Size", answers.length ? `${answers.length} x ${answers.width} x ${answers.height} ${answers.unit}` : "Not chosen"], ["Ply", answers.ply || "Not chosen"], ["Quantity", answers.quantity ? `${answers.quantity} boxes` : "Not chosen"], ["Printing", answers.printing || "Not chosen"], ["Contact", answers.phone || "Not chosen"]].map(([label, value]) => <div key={label}><div className="mono text-[10px] uppercase tracking-[.12em] text-ink-soft">{label}</div><div className="font-bold">{value}</div></div>)}</div></aside></div></div>;
+
+  const summary: [string, string][] = [
+    ["Box", answers.boxType || "Not chosen"],
+    ["Size", answers.length ? `${answers.length} × ${answers.width} × ${answers.height} ${answers.unit}` : "Not chosen"],
+    ["Ply", answers.ply || "Not chosen"],
+    ["Quantity", answers.quantity ? `${answers.quantity} boxes` : "Not chosen"],
+    ["Printing", answers.printing || "Not chosen"],
+    ["Contact", answers.phone || "Not chosen"],
+  ];
+
+  return <div className="site-grid px-5 py-12 md:px-10 md:py-20"><div className="mx-auto grid max-w-[1200px] gap-12 lg:grid-cols-[1fr_300px]">
+    <div>
+      <h1 className="text-2xl md:text-3xl">Request a quote</h1>
+      <div className="mt-6 flex items-center gap-4">
+        <div className="h-1 w-full max-w-xs overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-ultra transition-[width] duration-300" style={{ width: `${((step + 1) / steps.length) * 100}%` }} /></div>
+        <span className="eyebrow shrink-0">Step {step + 1} of {steps.length}</span>
+      </div>
+      <div className="mt-10">{steps[step]}</div>
+      <div className="mt-10 flex items-center justify-between gap-4 border-t border-line pt-6">
+        <button type="button" disabled={step === 0} onClick={() => setStep((s) => s - 1)} className="pill pill-outline focus-ring px-5 py-3 font-semibold disabled:opacity-30">Back</button>
+        {step < steps.length - 1
+          ? <button type="button" disabled={!canNext} onClick={() => setStep((s) => s + 1)} className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+          : <button type="button" disabled={!canNext || status === "sending"} onClick={submit} className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink disabled:cursor-not-allowed disabled:opacity-40">{status === "sending" ? "Sending…" : "Send request"}</button>}
+      </div>
+    </div>
+    <aside className="card h-fit p-5 lg:sticky lg:top-28">
+      <div className="eyebrow">Your specification</div>
+      <dl className="mt-5 grid gap-4 text-sm">{summary.map(([label, value]) => <div key={label}>
+        <dt className="eyebrow">{label}</dt><dd className="mt-1 font-medium">{value}</dd>
+      </div>)}</dl>
+    </aside>
+  </div></div>;
 }
