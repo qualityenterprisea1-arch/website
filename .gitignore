@@ -4,8 +4,16 @@ node_modules/
 .env*
 !.env.example
 .playwright-mcp/
+# Screenshots and scratch captures land in the repo root constantly, so PNGs are
+# ignored by default. Anything the SITE actually serves has to be listed here or
+# it is silently dropped from the commit and 404s in production.
 *.png
 !public/products/*.png
+!public/images/**/*.png
+!public/logo.png
+!public/logo-square.png
+!app/icon.png
+!app/apple-icon.png
 tsconfig.tsbuildinfo
 shots/
 images/process/*.png
