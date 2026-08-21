@@ -13,18 +13,22 @@ baton means the next agent redoes your work.
 ## CURRENT STATE  ← overwrite this whole block every session
 
 ```
-LAST AGENT     : Claude (Opus 5)
+LAST AGENT     : GPT-5.6
 DATE           : 2026-08-21
-LAST COMMIT    : f11069b  Send from the verified domain by default
+LAST COMMIT    : pending this session
 BUILD PHASE    : LIVE. Deployed on Vercel at https://www.quality-enterprises.co.in
-                 Supabase + Resend both wired and verified end to end.
-WORKING        : Domain connected (www primary, apex 308-redirects), SSL valid, all
-                 6 security headers present. Quote wizard -> /api/quote -> Supabase
-                 row -> Resend email, confirmed "delivered" to a real inbox.
-                 axe-core wcag2a+aa: 0 violations on 8 routes, one h1 each.
-BROKEN         : Nothing known broken. Three env vars may still be unset in VERCEL
-                 (see NEXT ACTION) - if so, canonicals read the .vercel.app URL and
-                 lead email goes to the Resend account address, not the real inbox.
+                 Supabase + Resend are wired and the local dashboard is operational.
+WORKING        : Quote wizard captures a dynamic city/delivery area, validates it
+                 server-side, writes city/area to Supabase, and includes Delivery in
+                 Resend notifications. Dashboard supports inbound, outbound and
+                 combined tabs, pipeline statuses, notes, filters, charts, drawer,
+                 CSV and URL-persisted views. Three public-source Hyderabad prospects
+                 are stored separately as drafted, unverified records; no outreach was
+                 sent. Clean TypeScript and production build verified this session.
+BROKEN         : In-app Browser was unavailable, so dashboard verification used the
+                 standalone installed Chrome/Playwright path. The sales analyzer can
+                 return malformed contact data or hang on some sites; the discovery
+                 script now times out and records warnings rather than blocking a run.
 NEXT ACTION    : 1. Confirm these are set in Vercel, then redeploy:
                       NEXT_PUBLIC_SITE_URL = https://www.quality-enterprises.co.in
                       QUOTE_NOTIFY_FROM = Quality Enterprises <quotes@send.quality-enterprises.co.in>
@@ -32,8 +36,8 @@ NEXT ACTION    : 1. Confirm these are set in Vercel, then redeploy:
                     Verify by curling /robots.txt - it must NOT say website-sandy-ten-39.
                  2. Strix pentest still not run: Docker + image ready, needs the user's
                     STRIX_LLM + LLM_API_KEY. Run against the LIVE url, not a local dir.
-                 3. PHONE / WHATSAPP / EMAIL / GSTIN still unsupplied - the only
-                    unverified content left. Contact rows stay hidden until they land.
+                 3. PHONE / WHATSAPP / EMAIL / GSTIN still unsupplied. Keep those
+                    contact rows omitted until real values arrive.
 ```
 
 ---
@@ -199,6 +203,44 @@ BOARD SPECS block is invented — build behind `<!-- UNVERIFIED -->` until they 
 **For the next agent:**
 
 -->
+
+### 2026-08-21 · GPT-5.6 · DONE
+**Did:** Completed all three tasks in `NEXT-TASK-PROMPT.md`. Added dynamic delivery
+area capture and server-derived city/area validation to the public quote flow and
+Resend notification. Applied and committed migrations for location/pipeline fields and
+a separate RLS-protected `outbound_prospects` table. Rebuilt the local dashboard with
+inbound/outbound/combined tabs, editable pipeline status and notes, last-contacted
+tracking, inline SVG charts, combined filters, URL persistence, sortable tables, CSV,
+an accessible detail drawer, copy summary and keyboard navigation. Defined the local
+packaging ICP and added a reviewed-URL discovery runner around all three installed
+ai-sales-team scripts. Public-web discovery produced three real Hyderabad prospects:
+Kreata Foods, Sri Krishna Pharma and Lee Pharma. Each official URL was analyzed,
+normalized after review, stored separately as `is_verified=false`, and given a draft
+for human approval. No cold email was sent. Deleted all six E2E quote rows and temp
+test/build artifacts.
+**Files:** `app/quote/{page,layout}.tsx`, `app/api/quote/route.ts`, `app/globals.css`,
+`content/{deliveryAreas.json,salesIcp.ts}`, `scripts/discover-prospects.mjs`,
+`supabase/migrations/20260821080235_create_quote_requests.sql`,
+`supabase/migrations/20260821090000_add_quote_location_and_pipeline.sql`,
+`supabase/migrations/20260821091000_create_outbound_prospects.sql`, `HANDOFF.md`;
+plus local-only `C:\qe-leads-dashboard\{index.html,server.js,README.md,.env.example}`.
+**Verified how:** `npx tsc --noEmit` clean and clean `npm run build` generated 34
+routes. Real quote submission reached live Supabase with Hyderabad/Narsingi. Resend API
+lookups for notification IDs `2e0f24a5-dbd8-4ca6-a420-409c157d1c48` and
+`142c31b4-d862-40f2-be48-e35f9f0329d6` both contain `Delivery` in HTML and text.
+Dashboard API returned three drafted/unverified outbound rows; Playwright against local
+Chrome exercised Outbound, Combined URL persistence and the outbound drawer, visually
+inspected the screenshot, and found zero axe wcag2a/wcag2aa violations. Final database
+query found zero E2E rows. `node --check` passed for dashboard server and discovery
+script; `git diff --check` passed.
+**Left broken:** In-app Browser was unavailable; standalone Playwright was used. The
+third-party contact finder timed out on Lee Pharma and extracted false positives on
+other sites, so reviewed top-level contact fields were normalized and remain explicitly
+unverified. The live deployment will not include this commit until GitHub/Vercel finishes
+after push.
+**For the next agent:** Keep outbound data separate and unverified until a human confirms
+it. Never send the queued drafts automatically. The local dashboard remains outside git
+and bound to `127.0.0.1`.
 
 ### 2026-08-20 · GPT-5.6 · DONE
 **Did:** Installed the reviewed third-party `seo` skill from `affaan-m/ECC` into `C:\Users\001sa\.codex\skills\seo`; the source contains only `SKILL.md` and no companion files. Added mobile-safe footer spacing and removed dead pending-contact action links. Replaced the mobile board fallback with three deterministic horizontal scroll-snap panels for 3 ply, 5 ply and 7 ply while preserving the desktop anime.js scrub. Added reusable canonical/OG/Twitter metadata, unique metadata for public routes, FAQPage and BreadcrumbList schema, product schema without fabricated offers, and a truthful Organization/LocalBusiness schema without pending phone/email/GSTIN values. Updated robots and sitemap priorities.
@@ -486,4 +528,3 @@ hero rebuild, About rewrite, Supabase, Resend, GitHub, Vercel, custom domain.
 single highest-value remaining task is confirming the three Vercel env vars, because
 until then the live site advertises the wrong canonical origin and lead notifications
 land in the wrong inbox.
-
