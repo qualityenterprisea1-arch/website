@@ -70,32 +70,29 @@
   .focus-ring:focus-visible { outline: 2px solid var(--ultra); outline-offset: 3px; }
 
   /* ---- Hero -------------------------------------------------------------
-     Entrance is pure CSS keyframes with `backwards` fill, so the base state
-     is VISIBLE. If animations never run the hero still reads — a JS-driven
-     reveal would leave the headline invisible on failure. ------------------ */
-  .hero { position: relative; isolation: isolate; overflow: hidden; background: linear-gradient(168deg, #FAF8F4 0%, #F3EDE3 52%, #E9E0D1 100%); }
-  .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(58% 52% at 76% 30%, rgb(176 135 87 / .18), transparent 72%); }
+     Dark ground, because the hero photograph is a low-key factory frame — on
+     cream it read as a heavy rectangle pasted onto a light page. Entrance is
+     pure CSS keyframes with `backwards` fill, so the base state is VISIBLE.
+     If animations never run the hero still reads; a JS-driven reveal would
+     leave the headline invisible on failure. ------------------------------- */
+  .hero { position: relative; isolation: isolate; overflow: hidden; background: linear-gradient(150deg, #17140F 0%, #100E0B 46%, #1A1611 100%); color: var(--paper); }
+  .hero::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(52% 48% at 72% 42%, rgb(196 150 92 / .16), transparent 74%); }
 
   .hero-media { position: relative; overflow: hidden; }
-  .hero-media img { object-fit: cover; object-position: 50% 45%; }
-  /* Warm wash over the whole frame: the studio background of the photograph is
-     cooler than the cream ground, and without this a vertical seam shows where
-     the two meet. */
-  .hero-media > .hero-wash { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(90deg, rgb(243 237 227 / .55) 0%, rgb(243 237 227 / .3) 45%, rgb(243 237 227 / .16) 100%); mix-blend-mode: multiply; }
-  .hero-float { position: absolute; inset: -3%; animation: hero-float 11s ease-in-out infinite alternate; }
-  @keyframes hero-float { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(0, -16px, 0) scale(1.015); } }
+  .hero-media img { object-fit: cover; object-position: 62% 50%; }
+  .hero-float { position: absolute; inset: -3%; animation: hero-float 12s ease-in-out infinite alternate; }
+  @keyframes hero-float { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(0, -14px, 0) scale(1.02); } }
 
   @media (min-width: 1024px) {
     /* Photograph bleeds to the viewport edge and dissolves into the ground.
-       No frame, no hard slab — the earlier version stacked three unrelated
-       rectangles and read as a mistake. */
-    .hero-media { position: absolute; inset: 0 0 0 auto; width: 53%; }
-    .hero-media::before { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, #F4EEE4 0%, #F4EEE4 6%, rgb(244 238 228 / .82) 22%, rgb(244 238 228 / .34) 44%, rgb(244 238 228 / .06) 72%, transparent 88%); }
-    .hero-media::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(0deg, rgb(233 224 209 / .55) 0%, transparent 28%); }
+       Its own left side is already deep shadow, so the blend is seamless. */
+    .hero-media { position: absolute; inset: 0 0 0 auto; width: 56%; }
+    .hero-media::before { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(90deg, #100E0B 0%, rgb(16 14 11 / .92) 18%, rgb(16 14 11 / .45) 42%, rgb(16 14 11 / .05) 74%, transparent 90%); }
+    .hero-media::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(0deg, rgb(16 14 11 / .7) 0%, transparent 26%); }
   }
 
   /* A light sweep that crosses the photograph once on load. */
-  .hero-sheen { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(104deg, transparent 38%, rgb(255 255 255 / .34) 50%, transparent 62%); transform: translateX(-120%); animation: hero-sheen 2.1s cubic-bezier(.32,.8,.3,1) 1s backwards; }
+  .hero-sheen { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: linear-gradient(104deg, transparent 40%, rgb(255 236 205 / .13) 50%, transparent 60%); transform: translateX(-120%); animation: hero-sheen 2.4s cubic-bezier(.32,.8,.3,1) 1.1s backwards; }
   @keyframes hero-sheen { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
 
   .hero-rise { animation: hero-rise .95s cubic-bezier(.16,1,.3,1) backwards; }
@@ -105,8 +102,8 @@
   .hero-line > span { display: block; animation: hero-line 1.15s cubic-bezier(.16,1,.3,1) backwards; }
   @keyframes hero-line { from { transform: translateY(106%); } }
 
-  .hero-reveal { animation: hero-reveal 1.7s cubic-bezier(.16,1,.3,1) backwards; }
-  @keyframes hero-reveal { from { opacity: 0; transform: scale(1.07); } }
+  .hero-reveal { animation: hero-reveal 1.9s cubic-bezier(.16,1,.3,1) backwards; }
+  @keyframes hero-reveal { from { opacity: 0; transform: scale(1.08); } }
 
   .hero-rule { transform-origin: left; animation: hero-rule 1.1s cubic-bezier(.16,1,.3,1) backwards; }
   @keyframes hero-rule { from { transform: scaleX(0); } }

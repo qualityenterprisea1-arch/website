@@ -8,3 +8,4 @@ node_modules/
 !public/products/*.png
 tsconfig.tsbuildinfo
 shots/
+images/process/*.png
