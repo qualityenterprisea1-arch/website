@@ -290,13 +290,42 @@ if (opts.reenrich || has("rescore")) {
 let companies = await discover();
 if (opts.limit) companies = companies.slice(0, opts.limit);
 
+/* Columns the sweep owns. Everything a human edits - status, notes,
+   is_verified, do_not_contact, outreach_draft - is deliberately absent, so a
+   re-run can never overwrite someone's work. */
+const WRITABLE = ["company_name", "website_url", "city", "district", "address", "industry", "description",
+  "contact_name", "contact_title", "contact_email", "contact_phone", "phones", "emails", "contacts",
+  "source", "source_url", "score_total", "grade", "proximity_band", "recommended_action",
+  "disqualified_reason", "score", "analysis", "evidence", "last_enriched_at"];
+
+async function store(batch) {
+  if (opts.dry || !batch.length) return;
+  const payload = batch.map((p) => Object.fromEntries(WRITABLE.map((k) => [k, p[k] ?? null])));
+  await sb("outbound_prospects?on_conflict=website_url", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(payload),
+  });
+}
+
+/* Enrich and store in batches rather than accumulating everything and writing
+   once at the end. A full sweep now crawls a couple of hundred sites over the
+   better part of an hour; a single write at the end means one interruption
+   throws all of it away. Each completed batch is banked. */
 log(`[enrich] crawling ${companies.length} company sites, ${opts.concurrency} at a time`);
+const BATCH = 25;
+const prospects = [];
 let done = 0;
-const prospects = (await pool(companies, opts.concurrency, async (row) => {
-  const p = await buildProspect(row);
-  if (++done % 10 === 0) log(`[enrich] ${done}/${companies.length}`);
-  return p;
-})).filter((p) => p && !p.error && p.company_name);
+for (let i = 0; i < companies.length; i += BATCH) {
+  const built = (await pool(companies.slice(i, i + BATCH), opts.concurrency, async (row) => {
+    const p = await buildProspect(row);
+    if (++done % 10 === 0) log(`[enrich] ${done}/${companies.length}`);
+    return p;
+  })).filter((p) => p && !p.error && p.company_name);
+  prospects.push(...built);
+  await store(built);
+  log(`[store] banked ${prospects.length}/${companies.length}`);
+}
 
 const keep = prospects.filter((p) => !p.disqualified_reason);
 const dropped = prospects.length - keep.length;
