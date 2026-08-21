@@ -33,8 +33,22 @@ export default function QuotePage() {
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) { setStatus("failed"); return; }
     setStatus("sending");
+    // Column names are snake_case and created_at is left to the database default —
+    // a client-supplied timestamp on a public endpoint is not worth trusting.
+    const payload = {
+      box_type: answers.boxType,
+      length: answers.length, width: answers.width, height: answers.height,
+      unit: answers.unit,
+      ply: answers.ply,
+      quantity: Number(answers.quantity),
+      printing: answers.printing,
+      name: answers.name.trim(),
+      phone: answers.phone.trim(),
+      company: answers.company.trim() || null,
+      email: answers.email.trim() || null,
+    };
     try {
-      const res = await fetch(`${url}/rest/v1/quote_requests`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify({ ...answers, quantity: Number(answers.quantity), created_at: new Date().toISOString() }) });
+      const res = await fetch(`${url}/rest/v1/quote_requests`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(payload) });
       setStatus(res.ok ? "sent" : "failed");
     } catch { setStatus("failed"); }
   };
