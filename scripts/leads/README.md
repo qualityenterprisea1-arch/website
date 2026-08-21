@@ -18,9 +18,13 @@ discover ──► enrich ──► score ──► store
 
 ## Run it
 
+Secrets live in `C:\qe-leads-dashboard\.env` — one file, outside git, already
+holding the Supabase service key. `--env-file` loads it, so nothing has to be
+exported into a shell:
+
 ```bash
-# needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment
-node scripts/leads/run.mjs                                  # full sweep
+# SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and EXA_API_KEY for named contacts
+node --env-file=C:/qe-leads-dashboard/.env scripts/leads/run.mjs   # full sweep
 node scripts/leads/run.mjs --industries pharma,food         # narrow it
 node scripts/leads/run.mjs --districts hyderabad --dry      # look, do not write
 node scripts/leads/run.mjs --rescore                        # re-score existing rows
@@ -52,9 +56,13 @@ schtasks /create /tn "QE lead pipeline" /sc weekly /d MON /st 07:00 /f `
   /tr "cmd /c cd /d C:\qualityenterprises && node scripts\leads\run.mjs --quiet >> %TEMP%\qe-leads.log 2>&1"
 ```
 
-The task needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as **user**
-environment variables (`setx`), because a scheduled task does not inherit a
-shell's session variables.
+A scheduled task inherits no shell session, so keep `--env-file` in the command
+rather than relying on exported variables. The dashboard's **Find new leads**
+button already passes its own environment to the pipeline, so a key added to
+that `.env` reaches every path without further wiring.
+
+`EXA_API_KEY` is optional. Without it the sweep still runs and still finds
+phones, emails and addresses; it just skips the named-buyer lookup.
 
 ## What the score means
 
@@ -95,9 +103,11 @@ standard lead-generation trick and it is fabrication — the address is invented
 not observed. A name with no published address stays a name plus a switchboard
 number to call through.
 
+Add `EXA_API_KEY=...` to `C:\qe-leads-dashboard\.env` and it runs inside the
+normal sweep with no extra step.
+
 ```bash
-# With EXA_API_KEY set, runs inside the normal sweep, no extra step.
-node scripts/leads/people.mjs --limit 25
+node --env-file=C:/qe-leads-dashboard/.env scripts/leads/people.mjs --limit 25
 
 # Without a key: emit the searches, have an agent run them, feed results back.
 node scripts/leads/people.mjs --queries --limit 15 > queries.json
