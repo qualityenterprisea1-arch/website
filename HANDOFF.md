@@ -15,17 +15,25 @@ baton means the next agent redoes your work.
 ```
 LAST AGENT     : Claude (Opus 5)
 DATE           : 2026-08-21
-LAST COMMIT    : 7a2760e  Fix invisible quote selection, wire real product images
-BUILD PHASE    : Phases 1-3 built. Real catalogue photography live on all 20 products.
-WORKING        : Production build 33 routes. Verified against `next start`: axe-core
-                 wcag2a+aa 0 violations on 8 routes, one h1 each, no failed requests,
-                 no console errors. Quote wizard selection re-tested in-browser.
-BROKEN         : Supabase not provisioned, so /quote shows an explicit FAILURE state on
-                 submit instead of silently claiming success. Intended; keep it until
-                 quote_requests + RLS exist.
-NEXT ACTION    : Provision Supabase quote_requests with anon INSERT-only RLS and set
-                 NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY. Until then the form captures
-                 nothing. This is now the only blocker of real substance.
+LAST COMMIT    : f11069b  Send from the verified domain by default
+BUILD PHASE    : LIVE. Deployed on Vercel at https://www.quality-enterprises.co.in
+                 Supabase + Resend both wired and verified end to end.
+WORKING        : Domain connected (www primary, apex 308-redirects), SSL valid, all
+                 6 security headers present. Quote wizard -> /api/quote -> Supabase
+                 row -> Resend email, confirmed "delivered" to a real inbox.
+                 axe-core wcag2a+aa: 0 violations on 8 routes, one h1 each.
+BROKEN         : Nothing known broken. Three env vars may still be unset in VERCEL
+                 (see NEXT ACTION) - if so, canonicals read the .vercel.app URL and
+                 lead email goes to the Resend account address, not the real inbox.
+NEXT ACTION    : 1. Confirm these are set in Vercel, then redeploy:
+                      NEXT_PUBLIC_SITE_URL = https://www.quality-enterprises.co.in
+                      QUOTE_NOTIFY_FROM = Quality Enterprises <quotes@send.quality-enterprises.co.in>
+                      QUOTE_NOTIFY_TO   = 001saadurrahman@gmail.com
+                    Verify by curling /robots.txt - it must NOT say website-sandy-ten-39.
+                 2. Strix pentest still not run: Docker + image ready, needs the user's
+                    STRIX_LLM + LLM_API_KEY. Run against the LIVE url, not a local dir.
+                 3. PHONE / WHATSAPP / EMAIL / GSTIN still unsupplied - the only
+                    unverified content left. Contact rows stay hidden until they land.
 ```
 
 ---
@@ -389,4 +397,93 @@ phone/email/GSTIN still pending; those rows are omitted rather than shown as "pe
 - Do not use `asset-010`; it has a fabricated trademark on the box.
 - Design target remains the board diagram's spec-sheet register. Do not reintroduce
   Anton, hard offset shadows, the graph-paper background, or the competitor table.
+
+### 2026-08-21 - Claude (Opus 5) - DONE  [LAUNCH SESSION]
+**Did:** Took the build from local-only to live. Product images, factory photography,
+hero rebuild, About rewrite, Supabase, Resend, GitHub, Vercel, custom domain.
+
+**LIVE INFRASTRUCTURE (none of this is in the repo - .env.local is gitignored):**
+- Site        : https://www.quality-enterprises.co.in  (www is PRIMARY, apex 308s to it)
+- Vercel      : website-sandy-ten-39.vercel.app, deployed from GitHub main
+                NOTE: the Vercel account holding this project is NOT the one the
+                Vercel MCP is authed to (that one only shows a project "cracked").
+- GitHub      : github.com/qualityenterprisea1-arch/website  (PUBLIC, default branch main)
+                Local git was renamed master -> main to match.
+- Supabase    : project ref `mkvrspngtomsngtwtrek`, region ap-south-1
+                table public.quote_requests, migration committed in supabase/migrations/
+- Resend      : sending domain send.quality-enterprises.co.in, VERIFIED
+                domain id bacfe0ba-640a-4ebf-96b8-2cb19253d2a3, region ap-northeast-1
+                Resend ACCOUNT email is qualityenterprisea1@gmail.com (no 's' before a1)
+- DNS         : Spaceship, nameservers launch1/launch2.spaceship.net (their normal DNS)
+
+**RULES LEARNED THE HARD WAY - do not relearn these:**
+
+1. **Tailwind v4: every component class MUST live inside `@layer components`.**
+   Unlayered CSS beats ALL Tailwind utilities regardless of specificity. An unlayered
+   `.card { background }` silently swallowed `bg-ultra` on the quote wizard's selected
+   state, leaving paper text on a paper card - the "white blank box" bug. Base styles
+   go in `@layer base` for the same reason. There is NO tailwind.config.ts; `@theme`
+   in globals.css is the single source of colour and display scale.
+
+2. **Resend cannot send FROM a gmail.com address.** You can only send from a domain
+   verified in Resend. And the onboarding@resend.dev fallback only delivers TO the
+   Resend account owner. Both cost a round trip to discover.
+
+3. **Never run `npm run build` while `next dev`/`next start` is serving.** It corrupts
+   the running server's .next and every route 500s with MODULE_NOT_FOUND. Kill node,
+   delete .next, rebuild, then start.
+
+4. **A `/_next/static/chunks/app/.../page.js` 404 in DEV** after editing a route is a
+   stale-chunk artifact, not a bug. It never appears in a production build.
+
+5. **Windows `nslookup` prints TXT records as empty.** Use
+   `curl "https://dns.google/resolve?name=<n>&type=TXT"` to actually read them.
+
+6. **Bash heredocs with complex quoting break on this Git-Bash setup** (DEAD ENDS #6).
+   Write a .py file to the scratchpad and run it instead.
+
+**DESIGN DIRECTION - the user gave three rounds of feedback, landing here:**
+- Round 1 "too funky": killed Anton poster caps, hard offset shadows, graph-paper
+  background, and a strawman competitor table.
+- Round 2 "too simple / too professional, a little funky is ok": that first pass had
+  removed character rather than changing its kind. The fix was **not** decoration.
+- **The target is the board diagram's spec-sheet register** - hairline linework, mono
+  spec labels, instrument readouts, real numbers. `.spec-panel` is how that is
+  expressed and it now carries the hero, board constructions, box detail, contact and
+  capabilities. Do NOT flatten back to white cards, and do NOT reintroduce the poster
+  look. Character lives in composition (the dark bleeding hero, offset overlaps,
+  signal-red numerals), not ornament.
+- Hero is DARK because the supplied hero photo is a low-key factory frame; on cream it
+  read as a heavy rectangle pasted on a light page.
+- Hero entrance is **CSS keyframes with `backwards` fill, never JS** - base state is
+  visible, so a JS failure cannot hide the headline.
+
+**CONTENT RULES the user set explicitly:**
+- No fake content. No invented company age, headcount, tonnage, certifications or
+  client names. Every claim on /about traces to something committed elsewhere.
+- Do NOT say the business is new / starting fresh - the user's words: buyers "don't
+  care about fresh starters". Volunteering it invites the reader to discount the page.
+- `images/corrugated_catalog_masters/asset-010` is EXCLUDED from the site: it carries a
+  fabricated "INDESTRUCTO(R)" trademark. Never wire it in.
+- /process and /about carry a disclosure that the photography illustrates standard
+  conversion stages rather than this unit. Keep it while the images are generated.
+- /works must NOT become a second product grid. It was a duplicate of /boxes; it now
+  shows process/capability. Nav label is "Capabilities".
+
+**SECURITY POSTURE (audited this session, Strix still outstanding):**
+- RLS on quote_requests: anon INSERT only. SELECT 42501, UPDATE/DELETE 401, MOQ
+  constraint 400 - all verified against the live project, not assumed.
+- /api/quote validates server-side, has a honeypot (`website` field), and inserts
+  BEFORE emailing so a failed notification can never lose a lead.
+- 6 security headers + poweredByHeader:false in next.config.ts.
+- jsonLdScript escapes < > & (it feeds dangerouslySetInnerHTML).
+- KNOWN, ACCEPTED: 3 high npm vulns via next@15.5.23 (postcss, sharp). Not reachable -
+  postcss issues are build-time on authored CSS, sharp needs attacker-controlled
+  images and next.config declares no remotePatterns. Fix is next@16, a major upgrade.
+  **Re-check immediately if remote image domains are ever added.**
+
+**For the next agent:** read the RULES block above before touching CSS or email. The
+single highest-value remaining task is confirming the three Vercel env vars, because
+until then the live site advertises the wrong canonical origin and lead notifications
+land in the wrong inbox.
 
