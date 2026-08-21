@@ -318,24 +318,4 @@ if (opts.dry) {
   process.exit(0);
 }
 
-/* Upsert on website_url, which the table already has a unique index on.
-   merge-duplicates keeps a human's status, notes and is_verified from being
-   overwritten by a later run - those columns are simply not in the payload. */
-const WRITABLE = ["company_name", "website_url", "city", "district", "address", "industry", "description",
-  "contact_name", "contact_title", "contact_email", "contact_phone", "phones", "emails", "contacts",
-  "source", "source_url", "score_total", "grade", "proximity_band", "recommended_action",
-  "disqualified_reason", "score", "analysis", "evidence", "last_enriched_at"];
-
-const payload = prospects.map((p) => Object.fromEntries(WRITABLE.map((k) => [k, p[k] ?? null])));
-
-for (let i = 0; i < payload.length; i += 50) {
-  const chunk = payload.slice(i, i + 50);
-  await sb("outbound_prospects?on_conflict=website_url", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify(chunk),
-  });
-  log(`[store] wrote ${Math.min(i + 50, payload.length)}/${payload.length}`);
-}
-
 log(`\nDone in ${Math.round((Date.now() - started) / 1000)}s. Nothing was sent to anyone.`);
