@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
 
-// Single source of truth for the public origin. Set NEXT_PUBLIC_SITE_URL in Vercel
-// to the live domain; the fallback only exists so local builds work. Canonicals,
-// OG tags, JSON-LD, robots.txt and the sitemap all read from here, so getting this
-// wrong advertises a domain we may not own.
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// Single source of truth for the public origin. Canonicals, OG tags, JSON-LD,
+// robots.txt and the sitemap all read from here.
+//
+// The order matters. NEXT_PUBLIC_SITE_URL wins so a custom domain can be forced.
+// Failing that we use Vercel's own production URL, which is the deployment's real
+// public origin and becomes the custom domain automatically once one is attached —
+// so a forgotten env var degrades to "correct but unbranded" rather than shipping
+// canonical tags pointing at localhost. This module is server-only (no client
+// component imports it), so the unprefixed Vercel variable is readable here.
+// `??` is wrong here: an env var set to an empty string in the Vercel dashboard is
+// "" not undefined, which would slip through and crash the build on `new URL("")`.
+// Treat blank as unset.
+const clean = (v?: string) => (v && v.trim() ? v.trim() : undefined);
+const vercelHost = clean(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+
+const configured =
+  clean(process.env.NEXT_PUBLIC_SITE_URL) ??
+  (vercelHost ? `https://${vercelHost}` : undefined) ??
+  "http://localhost:3000";
+
+export const siteUrl = configured.replace(/\/+$/, "");
 export const siteName = "Quality Enterprises";
 
 export function pageMetadata(title: string, description: string, path = ""): Metadata {
