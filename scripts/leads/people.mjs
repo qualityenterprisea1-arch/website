@@ -94,22 +94,78 @@ export function buildQuery(company, city = "Hyderabad") {
  * "(Current)" and a finished one with an end date, so absence of "(Current)"
  * next to the title is treated as past - the safe direction to be wrong in. */
 export function parseProfile(result) {
-  const text = [result.title, result.highlights, result.text, result.summary]
-    .flat().filter(Boolean).join("\n");
-  const name = String(result.title || "").split("|")[0].trim();
+  const text = [result.text, result.highlights, result.summary].flat().filter(Boolean).join("\n");
+  // Exa titles a profile "Name", but sometimes "Name - Headline". Keep the name.
+  const name = String(result.title || "").split(/\s+[|–—]\s+|\s+-\s+/)[0].trim();
+  const lines = text.split(/\r?\n/);
   const roles = [];
 
-  // "#### Purchase Manager (Current)" or "### Sr Executive-Procurement - [COMPANY]"
-  const line = /^[#\s]*([A-Za-z][A-Za-z0-9 ,.&/'’-]{2,80}?)\s*(\(Current\))?\s*(?:-\s*\[([^\]]{2,90})\])?\s*$/gm;
-  let currentCompany = null;
-  for (const m of text.matchAll(line)) {
-    const [, title, isCurrent, company] = m;
-    if (company) currentCompany = company;
+  // A company heading with no title: "### [SHILPA MEDICARE LTD](.../company/...)"
+  const COMPANY_ONLY = /^#+\s*\[([^\]]{2,90})\]\(https:\/\/www\.linkedin\.com\/company\//;
+  // Title and company on one line, the link and "(Current)" trailing:
+  // "### Head SCM - PROCUREMENT - [SHILPA MEDICARE LTD](url) (Current)"
+  const TITLE_COMPANY = /^#+\s*(.+?)\s+-\s*\[([^\]]{2,90})\]\(https:\/\/www\.linkedin\.com\/company\/[^)]*\)\s*(\(Current\))?/;
+  // Title alone under a company heading: "#### Purchase Manager (Current)"
+  const TITLE_ONLY = /^#+\s*(.+?)\s*(\(Current\))?\s*$/;
+  // A role with no "(Current)" marker is still live if its dates run to Present.
+  const PRESENT = /\b-\s*Present\b/;
+
+  let heading = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.startsWith("#")) continue;
+
+    let title = null, company = null, current = false;
+    const tc = line.match(TITLE_COMPANY);
+    const co = line.match(COMPANY_ONLY);
+    if (tc) { [, title, company, ] = tc; current = Boolean(tc[3]); }
+    else if (co) { heading = co[1]; continue; }
+    else {
+      const to = line.match(TITLE_ONLY);
+      if (!to) continue;
+      title = to[1]; current = Boolean(to[2]); company = heading;
+    }
+    if (!title) continue;
+    // Strip a trailing markdown link the title regex may have kept.
+    title = title.replace(/\[[^\]]*\]\([^)]*\)/g, "").replace(/\s{2,}/g, " ").trim();
     const authority = buyingAuthority(title);
     if (authority == null) continue;
-    roles.push({ title: title.trim(), current: Boolean(isCurrent), company: (company || currentCompany || "").trim(), authority });
+
+    // The dated line directly beneath a role says whether it is still running.
+    const dates = (lines[i + 1] || "") + (lines[i + 2] || "");
+    if (PRESENT.test(dates)) current = true;
+
+    roles.push({ title, current, company: (company || heading || "").trim(), authority });
   }
-  return { name, url: result.url || null, roles, raw_company: (text.match(/\[([^\]]{2,90})\]\(https:\/\/www\.linkedin\.com\/company\//) || [])[1] || null };
+
+  // Live roles first, then by how much of a buyer the title is.
+  roles.sort((a, b) => (b.current - a.current) || (b.authority - a.authority));
+  return {
+    name, url: result.url || null, roles,
+    raw_company: (text.match(/\[([^\]]{2,90})\]\(https:\/\/www\.linkedin\.com\/company\//) || [])[1] || null,
+    headline: (text.match(/^#\s*.+\n+(.{5,200})$/m) || [])[1] || null,
+  };
+}
+
+/* A person's name, as opposed to an article headline or a company. Deliberately
+   does not require capitalisation - plenty of real profiles are lower case. */
+export function isPersonName(name) {
+  const n = String(name || "").trim();
+  if (n.length < 3 || n.length > 60) return false;
+  const words = n.split(/\s+/);
+  if (words.length < 2 || words.length > 6) return false;
+  if (/\d/.test(n)) return false;
+  // Function words mean it is a sentence, not a name.
+  if (/\b(of|and|the|for|with|in|at|to|from|how|why|what)\b/i.test(n)) return false;
+  if (/\b(ltd|limited|pvt|private|inc|llp|company|industries|solutions|profile|linkedin)\b/i.test(n)) return false;
+  return true;
+}
+
+/** Drop a trailing employer name from a job title, comparing by token. */
+export function stripEmployer(title, companyName) {
+  const parts = String(title).split(/\s+[-–—@,]\s+|\s+at\s+/i);
+  while (parts.length > 1 && companyMatch(companyName, parts.at(-1)) !== "none") parts.pop();
+  return parts.join(" - ").replace(/[\s,-]+$/, "").trim() || String(title);
 }
 
 /** Keep only people who hold a buying role at this exact company, right now. */
@@ -117,13 +173,28 @@ export function pickBuyers(results, companyName) {
   const out = [];
   for (const r of results) {
     const p = parseProfile(r);
-    if (!p.name || !p.url) continue;
+    // Only a personal profile can carry a person. Company pages and articles
+    // ("Management and History of Filatex Fashions") come back from the same
+    // search and are not contacts.
+    if (!p.url || !/\/in\/[^/]+/.test(p.url)) continue;
+    if (!isPersonName(p.name)) continue;
     for (const role of p.roles) {
-      const match = companyMatch(companyName, role.company || p.raw_company || "");
+      /* The role must name its own employer. Falling back to whatever company
+         the page mentions attributed a "Co-Founder - The Racquet Club" role to
+         Filatex Fashions, because that was the other company on the profile. */
+      if (!role.company) continue;
+      const match = companyMatch(companyName, role.company);
       if (match === "none") continue;
       if (!role.current) continue;                 // a past role is not a contact
+      // Some profiles write the employer into the job title ("Sr Purchase
+      // Executive - Shilpa Medicare Limited"). The company is already a column.
+      /* Match on tokens, not on the literal string: the profile link says
+         "SHILPA MEDICARE LTD" while the title says "Shilpa Medicare Limited",
+         so a straight replace never fires. Cut the last segment only when it
+         is the employer's name. */
+      const title = stripEmployer(role.title, companyName);
       out.push({
-        name: p.name, title: role.title, authority: role.authority,
+        name: p.name, title, authority: role.authority,
         company_match: match, current: true,
         source: "public professional profile", source_url: p.url,
         verified: false,

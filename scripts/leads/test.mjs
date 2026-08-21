@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { extractPhones, extractEmails, extractPeople, normalisePhone, siteName, isFreeMail } from "./enrich.mjs";
 import { proximity, packagingFit, reachability, scoreProspect, disqualify } from "./score.mjs";
 import { parseListing } from "./sources/factoriesindia.mjs";
-import { companyMatch, buyingAuthority, pickBuyers } from "./people.mjs";
+import { companyMatch, buyingAuthority, pickBuyers, isPersonName, stripEmployer } from "./people.mjs";
 
 let pass = 0;
 const it = (name, fn) => { try { fn(); pass++; } catch (e) { console.error(`FAIL  ${name}\n      ${e.message}`); process.exitCode = 1; } };
@@ -212,6 +212,38 @@ it("keeps only current roles at the right company", () => {
   assert.equal(buyers[0].company_match, "exact");
   assert.ok(buyers[0].source_url.includes("linkedin"), "a name must carry the profile it came from");
   assert.equal(buyers[0].verified, false, "nothing scraped is verified until a human says so");
+});
+
+it("never attributes another organisation's role to the prospect", () => {
+  // Real failure: this profile lists a CEO role at Filatex Fashions AND a
+  // co-founder role at an unrelated club. Falling back to "whichever company
+  // the page mentions" filed the club role under Filatex.
+  const results = [{
+    title: "Yash Sethia", url: "https://linkedin.com/in/yash-sethia-887135127",
+    text: "# Yash Sethia\n### Co-Founder - The Racquet Club (Current)\nJan 2020 - Present\n" +
+          "### [Filatex Fashions Limited](https://www.linkedin.com/company/filatex)\n#### Chief Executive Officer (Current)",
+  }];
+  const picked = pickBuyers(results, "Filatex Fashions Limited");
+  assert.ok(!picked.some((b) => /racquet/i.test(b.title)), "a role with no employer of its own is unattributable");
+});
+
+it("rejects article and company pages that the people search returns", () => {
+  assert.equal(isPersonName("Management and History of Filatex Fashions"), false);
+  assert.equal(isPersonName("Filatex Fashions Limited"), false);
+  // Real profiles are often lower case; that must not disqualify them.
+  assert.equal(isPersonName("sheebashish ghosh"), true);
+  assert.equal(isPersonName("Kesireddy vijaya bhaskar reddy"), true);
+  // Only a personal profile URL can carry a person.
+  const nonProfile = [{ title: "Srikanth Mogili", url: "https://linkedin.com/company/shilpa-medicare-ltd",
+    text: "### [SHILPA MEDICARE LTD](https://www.linkedin.com/company/shilpa-medicare-ltd)\n#### Head of Procurement (Current)" }];
+  assert.deepEqual(pickBuyers(nonProfile, "Shilpa Medicare Ltd."), []);
+});
+
+it("drops the employer from a job title, matching on tokens not text", () => {
+  // The link says LTD, the title says Limited - a literal replace never fires.
+  assert.equal(stripEmployer("Sr Purchase Executive - Shilpa Medicare Limited", "Shilpa Medicare Ltd."), "Sr Purchase Executive");
+  assert.equal(stripEmployer("Purchase Manager at SMS Pharmaceuticals Limited", "Sms Pharmaceuticals Limited"), "Purchase Manager");
+  assert.equal(stripEmployer("Purchase Manager", "Acme Ltd"), "Purchase Manager");
 });
 
 console.log(`${pass} checks passed${process.exitCode ? " (with failures above)" : ""}`);
