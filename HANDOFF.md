@@ -15,24 +15,25 @@ baton means the next agent redoes your work.
 ```
 LAST AGENT     : Claude (Opus 5)
 DATE           : 2026-08-22
-LAST COMMIT    : 924a538 (pushed)
-BUILD PHASE    : LIVE. https://www.quality-enterprises.co.in
-WORKING        : Site carries the IDA Mallapur address, the logo mark in header,
-                 footer and favicon, a Maps embed, and one-page quoting on
-                 /contact#quote with no delivery-area field. The lead pipeline
-                 (scripts/leads/) stores 31 prospects, 24 with phone numbers.
-BROKEN         : QUOTE_NOTIFY_TO in VERCEL is still an old address. It can only be
-                 set by the account owning the project, and the Vercel CLI here is
-                 logged into `samad001z` / samad001zs-projects, which does NOT hold
-                 it. The USER must set it in the Vercel dashboard.
-NEXT ACTION    : 1. Vercel env: QUOTE_NOTIFY_TO = qualityenterprisea1@gmail.com
-                    (NO "s" before a1 - this is also the Resend account address).
-                    Redeploy after. NEXT_PUBLIC_SITE_URL is already correct,
-                    verified via the live /robots.txt.
-                 2. Schedule the lead sweep - command in scripts/leads/README.md.
-                 3. Coverage is pharma-heavy; a second discovery source is the
-                    highest-value next move. Contract is in that README.
-                 4. GSTIN still unsupplied. Strix pentest still not run.
+LAST COMMIT    : ea917aa (pushed)
+BUILD PHASE    : LIVE. Public site + hosted staff leads desk at /leads.
+WORKING        : 215 prospects, 67 with BOTH a named contact and a phone number.
+                 Two discovery sources (factory register + Exa). Named purchase
+                 managers from public profiles. Weekly sweep + digest scriptable.
+                 Leads desk on the public domain behind Supabase magic-link auth
+                 with an RLS staff allowlist.
+BROKEN         : Sign-in does not work yet. Supabase Authentication > Rate Limits
+                 still caps auth email at the default 2/hour, so magic links are
+                 refused with 429 BEFORE SMTP is attempted. The Resend SMTP
+                 settings are therefore still UNTESTED.
+NEXT ACTION    : 1. USER: Supabase > Authentication > Rate Limits > raise
+                    "Rate limit for sending emails" to ~30/hour.
+                 2. USER: Supabase > Authentication > URL Configuration > add
+                    https://www.quality-enterprises.co.in/leads to Redirect URLs.
+                 3. USER: Vercel env QUOTE_NOTIFY_TO = qualityenterprisea1@gmail.com
+                    (Vercel CLI here is logged into the WRONG account).
+                 4. Then sign in at /leads and confirm.
+                 5. Schedule the sweep: scripts/leads/install-schedule.ps1
 ```
 
 ---
@@ -796,3 +797,101 @@ violations, 0 console errors at 1440x900 and 375x812; both screenshots read.
 `outbound_prospects` is back to 31 rows with **24 carrying a phone number** - up
 from 14 after the bad rescore, and up from 22 before it. The merge-not-replace
 fix is in `run.mjs`.
+
+### 2026-08-22 - Claude (Opus 5) - DONE  [SCALE, NAMED BUYERS, HOSTED DESK]
+
+**Did:** Took the pipeline from 31 prospects to 215, added named purchase
+managers, and moved the dashboard off localhost onto the public domain behind a
+real login. Also made four mistakes worth reading before you trust any number in
+this file.
+
+**PIPELINE, measured against the database (not the logs):**
+```
+                     before      after
+prospects              31         215
+with a phone           24         150
+named contact          22          90
+NAME *AND* PHONE       18          67    <- the number that matters
+same corridor           4          25
+```
+
+**SECOND DISCOVERY SOURCE - `sources/exa.mjs`.** The factory register is finite:
+about 30 Telangana companies and no amount of paging finds a 31st. Exa company
+search is unbounded - 14 segments x 5 areas, nearest first. It queries what a
+company MAKES, never "packaging", because that returns box makers (competitors).
+Aggregator pages needed a general rule, not a blocklist: on a real company site
+the name is in the DOMAIN, on a directory listing it is in the PATH
+(thecompanycheck.com/company/x). Requiring one name token in the hostname kills
+them all. Dead pages too - a parked domain titled "Account Suspended" was stored
+as a prospect.
+
+**NAMED BUYERS - `people.mjs`.** Websites publish the board, not the buyer. Exa
+`category:people` finds current purchase managers. Two hard rules: only CURRENT
+roles, and only EXACT company matches - "SMS Lifesciences" is a different firm
+from "SMS Pharmaceuticals" and both are in Hyderabad. It never guesses an email
+from a name; firstname@company.com is fabrication.
+
+**ADDRESS EXTRACTION.** Exa rows have no address and proximity is 30 of 100
+points. `extractAddress()` anchors on the PIN code, not on the word "address" -
+Indian sites end an address with six digits. It must NOT split on full stops or
+"Plot No. 75A, Road No. 13" is shredded.
+
+**HOSTED DESK at /leads.** The old dashboard was safe only because it bound to
+127.0.0.1: no auth at all, and a service-role key that bypasses RLS. The web app
+carries the ANON key only; every table is behind RLS keyed to the signed-in
+email being active in `staff_allowlist`. Access is a table row, not a deploy.
+
+**FOUR MISTAKES - the real content of this entry:**
+
+1. **I killed my own 14-minute sweep** with `taskkill //F //IM node.exe` to free
+   `.next` for a build. Never blanket-kill node while a sweep is running.
+
+2. **A sweep enriched 217 companies and stored NOTHING, exit code 0.** An edit
+   script threw before saving, so the batched-write insert never landed, and a
+   follow-up edit deleted the original end-of-run write. The log printed a
+   confident summary of data that went nowhere. The sweep now banks every 25.
+
+3. **UTC vs IST cost an hour.** `last_enriched_at` is UTC; the machine is
+   UTC+5:30. A row written seconds ago reads 5.5h "behind" local and looks
+   stale. I chased a nonexistent bug in the RLS trigger because of it.
+
+4. **THE IMPORTANT ONE - a silent security trigger.** `guard_prospect_columns`
+   was scoped "fire unless role is service_role", which also caught the
+   `postgres` role behind the Supabase SQL console. Every admin UPDATE reported
+   success and silently reverted; `RETURNING` showed OLD values because the
+   trigger had already restored them. I twice told the user 80 rows were fixed
+   when nothing had changed. Now scoped to `authenticated` - the staff browser
+   role it was always meant to guard.
+   **Lesson: a guard that silently reverts is worse than one that errors.** Had
+   it raised an exception on a forbidden column, this was a five-second find.
+   Also: `apply_migration` DML appeared not to take - that was this trigger, not
+   the tool.
+
+**HOW TO TEST THE COLUMN GUARD PROPERLY** (the naive test proves nothing,
+because RLS rejects the row before the trigger runs):
+```sql
+set local role authenticated;
+set local request.jwt.claims = '{"email":"001saadurrahman@gmail.com","role":"authenticated"}';
+update outbound_prospects set contact_phone='+919999999999', status='won' where id=...;
+-- expect: contact_phone unchanged, status = 'won'
+```
+
+**SCORING HONESTY.** `buildProspect` used to default city to "Hyderabad". Exa
+rows carry no city, so 77 companies were credited with 18 of 30 proximity points
+for a location nobody established, and the no-location disqualifier could never
+fire. Now an unplaced company gets a new `unknown` band at 0 points and sorts
+low. Expect grades to look worse than the first report - that is the number
+becoming true. Final: A 4, B 59, C 65, D 87.
+
+**Files:** `scripts/leads/{run,enrich,score,people,digest,test}.mjs`,
+`scripts/leads/sources/{factoriesindia,exa}.mjs`,
+`scripts/leads/install-schedule.ps1`, `app/leads/{page.tsx,LeadsDesk.tsx}`,
+`lib/supabaseClient.ts`, `app/robots.ts`, four migrations under
+`supabase/migrations/2026082*`. Commits `0b6e35b` -> `ea917aa`, all pushed.
+
+**For the next agent:** run `node scripts/leads/test.mjs` (24 checks) after
+touching any extractor. Verify counts against the DATABASE, never against a run
+log - see mistake 2. Highest-value next moves: the Telangana Drug Control
+register (official, enumerable, dense in the home corridor, but PDFs), a
+staleness policy for contacts older than ~90 days, and buying-signal watching
+for plant expansions.
