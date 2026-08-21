@@ -1,3 +1,6 @@
 import type { MetadataRoute } from "next";
+import { siteUrl } from "@/content/seo";
 
-export default function robots(): MetadataRoute.Robots { return { rules: { userAgent: "*", allow: "/" }, sitemap: "https://quality-enterprises.co.in/sitemap.xml", host: "https://quality-enterprises.co.in" }; }
+export default function robots(): MetadataRoute.Robots {
+  return { rules: { userAgent: "*", allow: "/" }, sitemap: `${siteUrl}/sitemap.xml`, host: siteUrl };
+}

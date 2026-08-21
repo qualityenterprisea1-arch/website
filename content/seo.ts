@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 
-export const siteUrl = "https://quality-enterprises.co.in";
+// Single source of truth for the public origin. Set NEXT_PUBLIC_SITE_URL in Vercel
+// to the live domain; the fallback only exists so local builds work. Canonicals,
+// OG tags, JSON-LD, robots.txt and the sitemap all read from here, so getting this
+// wrong advertises a domain we may not own.
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 export const siteName = "Quality Enterprises";
 
 export function pageMetadata(title: string, description: string, path = ""): Metadata {
