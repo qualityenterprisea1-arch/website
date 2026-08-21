@@ -31,7 +31,7 @@ export default async function BoxDetail({ params }: { params: Promise<{ slug: st
           </div>
         </div>
         <p className="mt-8 max-w-xl text-ink-soft">Tell us your internal dimensions, quantity and handling requirement. The quote comes back with the construction stated clearly.</p>
-        <Link href={`/quote?box=${item.slug}`} className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Quote this format</Link>
+        <Link href={`/contact?box=${item.slug}#quote`} className="pill focus-ring mt-8 inline-flex bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Quote this format</Link>
       </div>
     </div>
     <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(productSchema)} />

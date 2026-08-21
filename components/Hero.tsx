@@ -26,7 +26,7 @@ export function Hero() {
     <div className="relative z-[4] mx-auto flex min-h-[78svh] w-full max-w-[1400px] flex-col justify-end px-5 pb-10 pt-24 md:px-10 md:pb-14 lg:block lg:min-h-[min(88vh,800px)] lg:pb-28 lg:pt-36">
       <div className="max-w-[36rem] lg:max-w-[34rem]">
         <span className="hero-rule mb-5 block h-px w-14 bg-kraft md:mb-7 md:w-16" style={{ animationDelay: "80ms" }} aria-hidden="true" />
-        <div className="eyebrow hero-rise !text-kraft" style={{ animationDelay: "160ms" }}>Corrugated packaging &middot; Narsingi, Hyderabad</div>
+        <div className="eyebrow hero-rise !text-kraft" style={{ animationDelay: "160ms" }}>Corrugated packaging &middot; IDA Mallapur, Hyderabad</div>
 
         <h1 className="mt-4 text-[clamp(2.35rem,5.6vw,4.4rem)] md:mt-6">
           <span className="hero-line"><span style={{ animationDelay: "260ms" }}>Packaging built</span></span>
@@ -38,7 +38,7 @@ export function Hero() {
         </p>
 
         <div className="hero-rise mt-7 grid gap-3 sm:flex sm:flex-wrap sm:items-center md:mt-9" style={{ animationDelay: "640ms" }}>
-          <Link href="/quote" className="pill focus-ring bg-paper px-7 py-3.5 text-center font-semibold text-ink hover:bg-kraft">Request a quote</Link>
+          <Link href="/contact#quote" className="pill focus-ring bg-paper px-7 py-3.5 text-center font-semibold text-ink hover:bg-kraft">Request a quote</Link>
           <Link href="/boxes" className="pill focus-ring border border-paper/30 px-7 py-3.5 text-center font-semibold text-paper hover:border-paper/70">See what we make</Link>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { boxTypes } from "@/content/boxTypes";
 import { siteUrl } from "@/content/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const paths = ["", "/about", "/process", "/works", "/boxes", "/contact", "/quote", ...boxTypes.map((item) => `/boxes/${item.slug}`)];
+  const paths = ["", "/about", "/process", "/works", "/boxes", "/contact", ...boxTypes.map((item) => `/boxes/${item.slug}`)];
   return paths.map((path) => ({
     url: `${siteUrl}${path}`,
     changeFrequency: path === "" ? ("weekly" as const) : ("monthly" as const),

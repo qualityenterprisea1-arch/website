@@ -5,7 +5,7 @@ import { boxTypes } from "@/content/boxTypes";
 import { site } from "@/content/site";
 import { pageMetadata, breadcrumbSchema, jsonLdScript } from "@/content/seo";
 
-export const metadata = pageMetadata("About Quality Enterprises", "A corrugated packaging unit in Narsingi, Hyderabad. Written specifications, board sized to the load, a 500-box minimum and repeat orders that stay identical.", "/about");
+export const metadata = pageMetadata("About Quality Enterprises", "A corrugated packaging unit at IDA Mallapur, Hyderabad. Written specifications, board sized to the load, a 500-box minimum and repeat orders that stay identical.", "/about");
 
 /* Every claim on this page is backed by something the site already commits to:
    the 4-hour written quote and 500 MOQ in content/site.ts, the nine conversion
@@ -24,7 +24,7 @@ const principles: [string, string, string][] = [
 ];
 
 const facts: [string, string][] = [
-  ["Unit", "Narsingi, Hyderabad"],
+  ["Unit", "IDA Mallapur, Hyderabad"],
   ["Working hours", site.hours],
   ["Board", "3, 5 and 7 ply, 120-220 GSM liner"],
   ["On site", "Corrugation through to finishing"],
@@ -35,7 +35,7 @@ const facts: [string, string][] = [
 
 export default function AboutPage() { return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1100px]">
   <SectionIntro as="h1" eyebrow="About Quality Enterprises" title="We make the board and the box in one place."
-    body="A corrugated packaging unit in Narsingi, Hyderabad. Corrugation, printing, cutting and finishing happen on the same floor, so the person who can answer a question about your job is standing next to the machine running it." />
+    body="A corrugated packaging unit at IDA Mallapur, Hyderabad. Corrugation, printing, cutting and finishing happen on the same floor, so the person who can answer a question about your job is standing next to the machine running it." />
 
   <figure className="card relative mt-12 aspect-[21/9] overflow-hidden">
     <Image src="/images/process/02-cutting.avif" alt="" fill priority sizes="(max-width: 1100px) 100vw, 1100px" className="object-cover" />
@@ -68,14 +68,14 @@ export default function AboutPage() { return <div className="site-grid px-5 py-1
     <h2 className="text-2xl md:text-3xl">The fastest way to judge a packaging supplier is to walk their floor.</h2>
     <p className="mt-4 max-w-2xl text-ink-soft">Come and see the board being made and the boxes being cut before you place an order. Tell us when suits and we will make sure someone from the line is free to take you round.</p>
     <div className="mt-8 flex flex-wrap gap-3">
-      <Link href="/quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
+      <Link href="/contact#quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
       <Link href="/contact" className="pill pill-outline focus-ring px-6 py-3 font-semibold">Arrange a visit</Link>
     </div>
   </section>
 
   {/* Same disclosure as /process: the photography is illustrative, not this unit. */}
   <p className="mono mt-16 border-t border-line pt-6 text-xs text-ink-soft">
-    Images illustrate standard corrugated conversion stages. Photographs of the Narsingi line are available on a factory visit.
+    Images illustrate standard corrugated conversion stages. Photographs of the Mallapur line are available on a factory visit.
   </p>
 
   <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(breadcrumbSchema([{ name: "Home", path: "" }, { name: "About", path: "/about" }]))} />

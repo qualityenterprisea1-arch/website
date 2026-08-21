@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SectionIntro } from "@/components/SectionIntro";
 import { pageMetadata, breadcrumbSchema, jsonLdScript } from "@/content/seo";
 
-export const metadata = pageMetadata("Corrugated Packaging Capabilities", "Printing, die-cutting, multi-depth scoring and custom sizing at Quality Enterprises in Narsingi, Hyderabad. What we can run for procurement and operations teams.", "/works");
+export const metadata = pageMetadata("Corrugated Packaging Capabilities", "Printing, die-cutting, multi-depth scoring and custom sizing at Quality Enterprises, IDA Mallapur, Hyderabad. What we can run for procurement and operations teams.", "/works");
 
 /* This page deliberately does NOT repeat the /boxes product grid. It shows what the
    line can do — the blanks, the print, the scoring — rather than the finished catalogue. */
@@ -45,12 +45,12 @@ export default function WorksPage() {
         <h2 className="text-xl font-semibold md:text-2xl">Need a format that is not in the catalogue?</h2>
         <p className="mt-4 max-w-xl text-ink-soft">Send the dimensions, the load and the handling route. We will tell you what can run, what board it needs and what else we need to price it properly.</p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
+          <Link href="/contact#quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
           <Link href="/boxes" className="pill pill-outline focus-ring px-6 py-3 font-semibold">Browse the catalogue</Link>
         </div>
       </div>
       <div className="spec-panel">
-        <div className="spec-panel-top"><span>The line</span><b>Narsingi</b></div>
+        <div className="spec-panel-top"><span>The line</span><b>IDA Mallapur</b></div>
         <div className="spec-panel-rows">{line.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
       </div>
     </div>

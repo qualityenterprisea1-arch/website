@@ -36,11 +36,11 @@ export default function ProcessPage() { return <div className="site-grid px-5 py
   {/* Illustrative process photographs, not pictures of this unit. Saying so keeps
      the page inside the spec's "every claim checkable" rule. */}
   <p className="mono mt-16 border-t border-line pt-6 text-xs text-ink-soft">
-    Images illustrate standard corrugated conversion stages. Photographs of the Narsingi line are available on a factory visit.
+    Images illustrate standard corrugated conversion stages. Photographs of the Mallapur line are available on a factory visit.
   </p>
 
   <div className="mt-10 flex flex-wrap gap-3">
-    <Link href="/quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
+    <Link href="/contact#quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
     <Link href="/contact" className="pill pill-outline focus-ring px-6 py-3 font-semibold">Arrange a visit</Link>
   </div>
 

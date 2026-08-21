@@ -15,7 +15,7 @@ const commitments: [string, string][] = [
   ["Quote turnaround", `Written back within ${site.quoteSla}`],
   ["Written specification", "Board, ply, GSM and dimensions stated on every quote"],
   ["Pre-run sample", "Available for approval before the run starts"],
-  ["Factory visit", "Open to buyers by appointment, Narsingi"],
+  ["Factory visit", "Open to buyers by appointment, IDA Mallapur"],
 ];
 
 /* Board figures are indicative ranges. The exact construction is confirmed
@@ -84,7 +84,7 @@ export default function Home() { return <div className="site-grid">
         <h2 className="max-w-2xl text-2xl md:text-4xl">Tell us what you need packed.</h2>
         <p className="mt-3 max-w-xl text-ink-soft">Send the dimensions, the quantity and what goes inside. We will come back with a written specification and price.</p>
       </div>
-      <Link href="/quote" className="pill focus-ring shrink-0 bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
+      <Link href="/contact#quote" className="pill focus-ring shrink-0 bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
     </div>
   </section>
 </div>; }

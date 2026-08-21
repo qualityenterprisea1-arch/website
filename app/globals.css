@@ -56,6 +56,8 @@
   .eyebrow { display: inline-flex; align-items: center; gap: .55rem; font: 700 11px/1.2 var(--font-mono), monospace; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-soft); }
   .eyebrow::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; align-self: flex-start; margin-top: .3em; border: 1px solid currentColor; }
   .eyebrow-plain::before { display: none; }
+  /* Form labels stack over their control; .eyebrow alone is inline-flex/center. */
+  .label-stack { display: flex; flex-direction: column; align-items: flex-start; width: 100%; }
 
   /* Tabular label/value rows — the site-wide version of the board instrument readout. */
   .spec-panel { border: 1px solid rgb(22 21 15 / .3); border-radius: 5px; background: var(--bone); font-family: var(--font-mono), monospace; overflow: hidden; }

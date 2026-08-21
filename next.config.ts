@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // The six-step /quote wizard was replaced by a single form on /contact.
+  // Anything already indexed or bookmarked must still land on the form.
+  async redirects() {
+    return [{ source: "/quote", destination: "/contact#quote", permanent: true }];
+  },
 };
 
 export default nextConfig;
