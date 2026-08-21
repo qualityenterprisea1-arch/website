@@ -27,38 +27,49 @@
 }
 
 :root { --kraft:#B08757; --kraft-lt:#E2D8C6; --kraft-dp:#7C5C36; --bone:#D7D4CB; --ink:#1A1714; --ink-soft:#5A5249; --line:#C9C2B4; --ultra:#14407A; --paper:#F8F6F2; --signal:#C0392B; }
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { --mobile-bar-reserve: 0px; margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-instrument), Arial, sans-serif; font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; padding-bottom: var(--mobile-bar-reserve); }
-h1,h2,h3,h4 { font-family: var(--font-instrument), Arial, sans-serif; font-weight: 600; line-height: 1.12; letter-spacing: -.022em; text-wrap: balance; }
-h1 { letter-spacing: -.03em; }
-.mono { font-family: var(--font-mono), monospace; }
-.site-grid { background-color: var(--paper); }
 
-/* Surfaces. Small radii and hairlines keep the spec-sheet register of the board diagram. */
-.card { border: 1px solid var(--line); border-radius: 4px; background: #FCFAF5; box-shadow: 0 1px 2px rgb(26 23 20 / .05); }
-.card-bone { background: var(--bone); }
+/* Base and component styles MUST be layered. Unlayered CSS beats every Tailwind
+   utility regardless of specificity, so an unlayered `.card { background }` silently
+   swallowed `bg-ultra` on the quote wizard's selected state — leaving paper-coloured
+   text on a paper-coloured card. Layering puts utilities back on top where they belong. */
+@layer base {
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { --mobile-bar-reserve: 0px; margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-instrument), Arial, sans-serif; font-size: 17px; line-height: 1.6; -webkit-font-smoothing: antialiased; padding-bottom: var(--mobile-bar-reserve); }
+  h1,h2,h3,h4 { font-family: var(--font-instrument), Arial, sans-serif; font-weight: 600; line-height: 1.12; letter-spacing: -.022em; text-wrap: balance; }
+  h1 { letter-spacing: -.03em; }
+}
 
-.pill { border: 1px solid transparent; border-radius: 4px; transition: background-color .18s ease, border-color .18s ease, color .18s ease; }
-.pill-outline { border-color: var(--line); background: transparent; }
-.pill-outline:hover { border-color: var(--ink); }
+@layer components {
+  .mono { font-family: var(--font-mono), monospace; }
+  .site-grid { background-color: var(--paper); }
 
-/* Mono label with a drawing-style tick, matching the board callout labels. */
-.eyebrow { display: inline-flex; align-items: center; gap: .55rem; font: 700 11px/1.2 var(--font-mono), monospace; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-soft); }
-.eyebrow::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; align-self: flex-start; margin-top: .3em; border: 1px solid currentColor; }
-.eyebrow-plain::before { display: none; }
+  /* Surfaces. Small radii and hairlines keep the spec-sheet register of the board diagram. */
+  .card { border: 1px solid var(--line); border-radius: 4px; background: #FCFAF5; box-shadow: 0 1px 2px rgb(26 23 20 / .05); }
+  .card-bone { background: var(--bone); }
 
-/* Tabular label/value rows — the site-wide version of the board instrument readout. */
-.spec-panel { border: 1px solid rgb(22 21 15 / .3); border-radius: 5px; background: var(--bone); font-family: var(--font-mono), monospace; overflow: hidden; }
-.spec-panel-top { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid rgb(22 21 15 / .16); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
-.spec-panel-rows { display: grid; gap: 7px; padding: 11px 14px 13px; font-size: 11px; }
-.spec-panel-rows > div { display: flex; justify-content: space-between; gap: 16px; color: rgb(22 21 15 / .74); }
-.spec-panel-rows b { font-weight: 400; color: var(--ink); text-align: right; }
-.spec-panel-foot { display: flex; gap: 2px; padding: 0 14px 12px; }
-.spec-panel-foot i { flex: 1; height: 7px; border-radius: 1px; background: rgb(22 21 15 / .2); }
-.spec-panel-foot i.is-on { background: var(--signal); }
+  .pill { border: 1px solid transparent; border-radius: 4px; transition: background-color .18s ease, border-color .18s ease, color .18s ease; }
+  .pill-outline { border-color: var(--line); background: transparent; }
+  .pill-outline:hover { border-color: var(--ink); }
 
-.focus-ring:focus-visible { outline: 2px solid var(--ultra); outline-offset: 3px; }
+  /* Mono label with a drawing-style tick, matching the board callout labels. */
+  .eyebrow { display: inline-flex; align-items: center; gap: .55rem; font: 700 11px/1.2 var(--font-mono), monospace; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-soft); }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; align-self: flex-start; margin-top: .3em; border: 1px solid currentColor; }
+  .eyebrow-plain::before { display: none; }
+
+  /* Tabular label/value rows — the site-wide version of the board instrument readout. */
+  .spec-panel { border: 1px solid rgb(22 21 15 / .3); border-radius: 5px; background: var(--bone); font-family: var(--font-mono), monospace; overflow: hidden; }
+  .spec-panel-top { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px 8px; border-bottom: 1px solid rgb(22 21 15 / .16); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+  .spec-panel-rows { display: grid; gap: 7px; padding: 11px 14px 13px; font-size: 11px; }
+  .spec-panel-rows > div { display: flex; justify-content: space-between; gap: 16px; color: rgb(22 21 15 / .74); }
+  .spec-panel-rows b { font-weight: 400; color: var(--ink); text-align: right; }
+  .spec-panel-foot { display: flex; gap: 2px; padding: 0 14px 12px; }
+  .spec-panel-foot i { flex: 1; height: 7px; border-radius: 1px; background: rgb(22 21 15 / .2); }
+  .spec-panel-foot i.is-on { background: var(--signal); }
+
+  .focus-ring:focus-visible { outline: 2px solid var(--ultra); outline-offset: 3px; }
+}
+
 .mobile-product-marquee { overflow: hidden; width: calc(100vw - 2.5rem); margin-left: auto; margin-right: auto; }
 .mobile-product-marquee__track { display: flex; width: max-content; gap: .75rem; animation: product-marquee-right 34s linear infinite; transform: translateX(-50%); }
 @keyframes product-marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }

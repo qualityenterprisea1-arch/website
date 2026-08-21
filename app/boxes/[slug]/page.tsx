@@ -16,9 +16,8 @@ export default async function BoxDetail({ params }: { params: Promise<{ slug: st
   const productSchema = { "@context": "https://schema.org", "@type": "Product", name: item.name, description: item.description, category: "Corrugated packaging", material: "Corrugated board", brand: { "@type": "Brand", name: "Quality Enterprises" } };
   return <div className="site-grid px-5 py-16 md:px-10 md:py-24"><div className="mx-auto max-w-[1200px]">
     <nav className="eyebrow"><Link href="/boxes" className="focus-ring hover:text-ink">Box formats</Link> <span aria-hidden="true">/</span> {item.name}</nav>
-    <div className="mt-8 grid gap-12 lg:grid-cols-[280px_1fr] lg:items-start">
-      {/* Reference crops are 172px masters — panel kept small so they are not upscaled past ~1.5x. */}
-      <div className="card relative aspect-square w-full max-w-[280px] overflow-hidden bg-white"><Image src={item.image} alt={item.name} fill priority sizes="280px" className="object-contain" /></div>
+    <div className="mt-8 grid gap-12 lg:grid-cols-2 lg:items-start">
+      <div className="card relative aspect-square overflow-hidden"><Image src={item.image} alt={item.name} fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" /></div>
       <div>
         <h1 className="text-3xl md:text-4xl">{item.name}</h1>
         <p className="mt-5 max-w-xl text-lg text-ink-soft">{item.description}</p>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Faq } from "@/components/Faq";
 import { HeroBoxes } from "@/components/HeroBoxes";
 import { SectionIntro } from "@/components/SectionIntro";
@@ -42,23 +43,41 @@ const strengths: [string, string, string, string][] = [
 ];
 
 export default function Home() { return <div className="site-grid">
-  <section className="mx-auto max-w-[1400px] px-5 pb-16 pt-14 md:px-10 md:pb-20 md:pt-20">
-    <div className="grid max-w-[1120px] gap-10 lg:grid-cols-[1fr_320px] lg:items-start lg:gap-14">
-      <div>
+  <section className="relative overflow-hidden border-b border-line">
+    {/* Kraft ground behind the image half only, so the hero has a material edge
+        instead of floating on flat paper. */}
+    <div aria-hidden="true" className="absolute inset-y-0 right-0 hidden w-[42%] bg-kraft-lt lg:block" />
+    <div className="relative mx-auto grid max-w-[1400px] items-center gap-12 px-5 pb-16 pt-14 md:px-10 md:pt-20 lg:grid-cols-[1.02fr_1fr] lg:gap-16 lg:pb-24">
+      <div className="max-w-xl">
         <div className="eyebrow">Corrugated packaging &middot; Narsingi, Hyderabad</div>
-        <h1 className="mt-5 text-[clamp(2.1rem,4.6vw,3.3rem)]">Packaging built for business.</h1>
-        <p className="mt-6 max-w-xl text-lg text-ink-soft">Shipping cartons, mailers, storage boxes and protective formats for procurement, warehouse and operations teams.</p>
+        <h1 className="mt-5 text-[clamp(2.3rem,5vw,3.7rem)]">Packaging built for business.</h1>
+        <p className="mt-6 text-lg text-ink-soft">Shipping cartons, mailers, storage boxes and protective formats for procurement, warehouse and operations teams.</p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link href="/quote" className="pill focus-ring bg-ultra px-6 py-3 font-semibold text-paper hover:bg-ink">Request a quote</Link>
           <Link href="/boxes" className="pill pill-outline focus-ring px-6 py-3 font-semibold">See what we make</Link>
         </div>
+        <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-5 border-t border-line pt-6 sm:grid-cols-3">
+          {([["Minimum order", site.moq], ["Quote back in", site.quoteSla], ["Formats", `${boxTypes.length} + custom`]] as [string, string][]).map(([label, value]) => <div key={label}>
+            <dt className="eyebrow">{label}</dt><dd className="mt-2 font-medium">{value}</dd>
+          </div>)}
+        </dl>
       </div>
-      <div className="spec-panel lg:mt-2">
-        <div className="spec-panel-top"><span>Capability</span><b>At a glance</b></div>
-        <div className="spec-panel-rows">{capability.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
-        <div className="spec-panel-foot" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} className={i < 6 ? "is-on" : undefined} />)}</div>
+
+      <div className="relative lg:pb-14 lg:pl-14">
+        <div className="card relative aspect-[4/3] overflow-hidden lg:aspect-[4/3.4]">
+          <Image src={boxTypes[0].image} alt="Kraft corrugated shipping cartons in three sizes" fill priority sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+        </div>
+        {/* Offset overlap is the one deliberate bit of tension in the layout. */}
+        <div className="spec-panel mt-5 lg:absolute lg:bottom-0 lg:left-0 lg:mt-0 lg:w-[19rem] lg:shadow-[0_6px_20px_rgb(26_23_20_/_.12)]">
+          <div className="spec-panel-top"><span>Capability</span><b>At a glance</b></div>
+          <div className="spec-panel-rows">{capability.map(([label, value]) => <div key={label}><span>{label}</span><b>{value}</b></div>)}</div>
+          <div className="spec-panel-foot" aria-hidden="true">{Array.from({ length: 18 }, (_, i) => <i key={i} className={i < 6 ? "is-on" : undefined} />)}</div>
+        </div>
       </div>
     </div>
+  </section>
+
+  <section className="mx-auto max-w-[1400px] px-5 pt-16 md:px-10">
     <HeroBoxes />
   </section>
 
