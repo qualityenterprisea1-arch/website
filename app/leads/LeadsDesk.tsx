@@ -34,6 +34,7 @@ type Quote = {
   id: string; created_at: string; name: string; phone: string; company: string | null; email: string | null;
   box_type: string; length: string; width: string; height: string; unit: string;
   ply: string; quantity: number; printing: string; city: string | null; area: string | null;
+  channel: string | null; utm: Record<string, string> | null; referrer: string | null;
   status: string; notes: string | null;
 };
 
@@ -248,7 +249,7 @@ export function LeadsDesk() {
           <tr className="border-b border-line">
             {(tab === "outbound"
               ? ["Grade", "Score", "Company", "Contact", "Phone", "Distance", "Status"]
-              : ["Received", "Name", "Company", "Phone", "Format", "Qty", "Status"]
+              : ["Received", "Name", "Company", "Phone", "Format", "Qty", "Came from", "Status"]
             ).map((h) => <th key={h} scope="col" className="eyebrow whitespace-nowrap px-3 py-3 text-left">{h}</th>)}
           </tr>
         </thead>
@@ -276,6 +277,7 @@ export function LeadsDesk() {
             <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{c.phone}</td>
             <td className="px-3 py-2.5 text-xs">{c.box_type}</td>
             <td className="px-3 py-2.5 text-right font-mono tabular-nums">{c.quantity}</td>
+            <td className="px-3 py-2.5 text-xs">{c.channel ?? <span className="text-ink-soft">—</span>}</td>
             <td className="px-3 py-2.5 text-xs">{c.status}</td>
           </tr>; })())}
         </tbody>
@@ -399,7 +401,8 @@ function QuoteDetail({ c, onPatch, busy }: { c: Quote; onPatch: (v: Record<strin
         {([["Received", fmtDate(c.created_at)], ["Company", c.company], ["Email", c.email],
            ["Format", c.box_type], ["Size", `${c.length} × ${c.width} × ${c.height} ${c.unit}`],
            ["Ply", c.ply], ["Quantity", `${c.quantity} boxes`], ["Printing", c.printing],
-           ["Delivery", [c.area, c.city].filter(Boolean).join(", ") || "Ask on the call"]] as [string, string | null][])
+           ["Delivery", [c.area, c.city].filter(Boolean).join(", ") || "Ask on the call"],
+           ["Came from", c.channel], ["Landed on", c.referrer]] as [string, string | null][])
           .filter(([, v]) => v).map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}
       </div>
     </div>

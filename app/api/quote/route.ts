@@ -22,8 +22,35 @@ type Row = {
   box_type: string; length: string; width: string; height: string; unit: "mm" | "in";
   ply: string; quantity: number; printing: string;
   city: string | null; area: string | null;
+  channel: string | null; utm: Record<string, string>; referrer: string | null; landing_page: string | null;
   name: string; phone: string; company: string | null; email: string | null;
 };
+
+/* Attribution is browser-derived and therefore untrusted input: clamp every
+   field and keep only utm-shaped keys. It is reporting data, never used for a
+   decision, so a bad value costs a wrong chart and nothing else. */
+const httpUrl = (v: string) => {
+  if (!v) return null;
+  try { const u = new URL(v); return u.protocol === "http:" || u.protocol === "https:" ? v : null; }
+  catch { return null; }
+};
+
+function attribution(body: Record<string, unknown>) {
+  const a = (body.attribution ?? {}) as Record<string, unknown>;
+  const rawUtm = (a.utm ?? {}) as Record<string, unknown>;
+  const utm: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawUtm).slice(0, 12)) {
+    if (typeof v === "string" && /^[a-z_]{2,30}$/i.test(k)) utm[k.toLowerCase()] = v.slice(0, 120);
+  }
+  return {
+    channel: str(a.channel, 60) || null,
+    utm,
+    // Only ever an http(s) URL. A javascript: or data: value is harmless while
+    // this is rendered as text, but it is one refactor away from being an href.
+    referrer: httpUrl(str(a.referrer, 300)),
+    landing_page: str(a.landing_page, 300) || null,
+  };
+}
 
 function parse(body: Record<string, unknown>): Row | string {
   const quantity = Number(body.quantity);
@@ -45,6 +72,7 @@ function parse(body: Record<string, unknown>): Row | string {
     ply: str(body.ply, 40),
     quantity,
     printing: str(body.printing, 40),
+    ...attribution(body),
     city: location ? location.city : null,
     area: location ? (location.requiresDetail ? outsideArea : location.area) : null,
     name: str(body.name, 120),
@@ -75,6 +103,7 @@ async function notify(row: Row) {
     ["Phone", row.phone],
     ["Company", row.company || "Not given"],
     ["Email", row.email || "Not given"],
+    ["Came from", row.channel || "Unknown"],
   ];
   const text = lines.map(([k, v]) => `${k.padEnd(10)} ${v}`).join("\n");
   const html = `<div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:560px">

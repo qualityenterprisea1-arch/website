@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/Header";
 import { MobileBar } from "@/components/MobileBar";
 import { Footer } from "@/components/Footer";
+import { Attribution } from "@/components/Attribution";
 import { site } from "@/content/site";
 import { siteUrl } from "@/content/seo";
 
@@ -22,5 +23,5 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const jsonLd = { "@context": "https://schema.org", "@type": ["Organization", "LocalBusiness"], "@id": `${siteUrl}#organization`, name: site.name, url: siteUrl, address: { "@type": "PostalAddress", streetAddress: site.addressParts.street, addressLocality: site.addressParts.locality, addressRegion: site.addressParts.region, postalCode: site.addressParts.postalCode, addressCountry: site.addressParts.country }, telephone: site.phone, email: site.email, areaServed: "Hyderabad", openingHours: site.hours };
-  return <html lang="en"><body className={`${instrument.variable} ${mono.variable}`}><Header /><main>{children}</main><Footer /><MobileBar /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /></body></html>;
+  return <html lang="en"><body className={`${instrument.variable} ${mono.variable}`}><Attribution /><Header /><main>{children}</main><Footer /><MobileBar /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} /></body></html>;
 }

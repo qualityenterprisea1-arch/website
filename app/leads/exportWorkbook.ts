@@ -30,7 +30,8 @@ type Quote = {
   phone: string; email: string | null;
   box_type: string; length: string; width: string; height: string; unit: string;
   ply: string; quantity: number; printing: string;
-  area: string | null; city: string | null; status: string; notes: string | null;
+  area: string | null; city: string | null; channel: string | null;
+  status: string; notes: string | null;
 };
 
 const PROX: Record<string, string> = {
@@ -223,6 +224,7 @@ function buildQuotes(wb: any, rows: Quote[]) {
     { header: "Quantity", key: "qty", width: 10 },
     { header: "Printing", key: "printing", width: 13 },
     { header: "Delivery", key: "delivery", width: 24 },
+    { header: "Came from", key: "channel", width: 16 },
     { header: "Status", key: "status", width: 12 },
     { header: "Notes", key: "notes", width: 44 },
   ];
@@ -234,6 +236,7 @@ function buildQuotes(wb: any, rows: Quote[]) {
       size: `${q.length} x ${q.width} x ${q.height} ${q.unit}`,
       ply: q.ply, qty: q.quantity, printing: q.printing,
       delivery: [q.area, q.city].filter(Boolean).join(", ") || "Ask on the call",
+      channel: q.channel ?? "",
       status: q.status, notes: q.notes ?? "",
     });
   }

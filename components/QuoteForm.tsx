@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { boxTypes } from "@/content/boxTypes";
 import { site } from "@/content/site";
+import { readAttribution } from "@/lib/attribution";
 
 /* One screen, not a wizard. The six-step flow made a buyer click Next five times
    before the form would accept anything; every field now sits on one page and the
@@ -47,6 +48,8 @@ export function QuoteForm() {
       ply: a.ply, quantity: Number(a.quantity), printing: a.printing,
       name: a.name, phone: a.phone, company: a.company, email: a.email,
       website: a.website, // honeypot
+      // First touch of this session, captured on whatever page they landed on.
+      attribution: readAttribution(),
     };
     try {
       const res = await fetch("/api/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
