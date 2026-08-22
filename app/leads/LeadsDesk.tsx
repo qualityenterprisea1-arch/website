@@ -38,12 +38,46 @@ type Quote = {
   status: string; notes: string | null;
 };
 
+type Post = {
+  id: string; slug: string; week_of: string; slot: number;
+  pillar: string; kind: string; format: string;
+  title: string; hook: string; caption: string; cta: string | null; hashtags: string[];
+  shots: number[]; source: string; generation: { prompt?: string; status?: string; output_url?: string } | null;
+  channels: string[]; link: string | null;
+  /* Written by scripts/social/platforms.mjs at plan time. Kept as one source of
+     truth there rather than reimplemented here — the fold lengths, hashtag
+     policies and link rules are the kind of thing that drifts apart the moment
+     they exist in two languages. */
+  platforms: Record<string, {
+    text: string; tags: string[]; alt: string; query: string; answer: string; warnings: string[];
+    title?: string; keywords?: string; firstComment?: string;
+  }> | null;
+  status: string; posted_at: string | null; posted_urls: Record<string, string>; notes: string | null;
+};
+
 const PROX: Record<string, string> = {
   "same-corridor": "Same corridor", "same-district": "Same district", hyderabad: "Hyderabad",
   "telangana-industrial": "TS industrial", telangana: "Telangana", outside: "Outside",
 };
 const OUT_STATUS = ["new", "researched", "drafted", "approved", "contacted", "won", "lost", "disqualified"];
 const IN_STATUS = ["new", "contacted", "quoted", "won", "lost"];
+const POST_STATUS = ["queued", "ready", "approved", "posted", "skipped"];
+const CHANNELS = ["instagram", "facebook", "linkedin", "whatsapp", "youtube"] as const;
+
+/* The caption is stored with a {{link}} token rather than a finished URL,
+   because the same piece goes to five places and each needs its own utm_source.
+   Resolving it at copy time is what makes "Instagram sent four quotes" a fact
+   rather than an inference from a referrer header that in-app browsers strip. */
+function captionFor(post: Post, channel: string) {
+  let link = post.link ?? "";
+  if (link.startsWith("https://wa.me/")) {
+    // A WhatsApp CTA points at the chat wherever it was posted; there is no
+    // utm_source to set, and the slug rides in the fragment.
+  } else if (link) {
+    try { const u = new URL(link); u.searchParams.set("utm_source", channel); link = u.toString(); } catch { /* keep as-is */ }
+  }
+  return post.caption.replaceAll("{{link}}", link);
+}
 
 const fmtDate = (v: string | null) =>
   v ? new Date(v).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—";
@@ -94,9 +128,10 @@ function SignIn() {
 export function LeadsDesk() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
-  const [tab, setTab] = useState<"outbound" | "inbound">("outbound");
+  const [tab, setTab] = useState<"outbound" | "inbound" | "content">("outbound");
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [denied, setDenied] = useState(false);
   const [q, setQ] = useState("");
   const [grade, setGrade] = useState("");
@@ -118,15 +153,17 @@ export function LeadsDesk() {
 
   const load = useCallback(async () => {
     if (!supabase || !session) return;
-    const [p, qr] = await Promise.all([
+    const [p, qr, sp] = await Promise.all([
       supabase.from("outbound_prospects").select("*").order("score_total", { ascending: false }),
       supabase.from("quote_requests").select("*").order("created_at", { ascending: false }),
+      supabase.from("social_posts").select("*").order("week_of").order("slot"),
     ]);
     // RLS returns an empty set rather than an error for a non-allowlisted user,
     // so "signed in but sees nothing anywhere" is how access denial looks.
     setDenied(!p.error && !qr.error && (p.data?.length ?? 0) === 0 && (qr.data?.length ?? 0) === 0);
     setProspects((p.data as Prospect[]) ?? []);
     setQuotes((qr.data as Quote[]) ?? []);
+    setPosts((sp.data as Post[]) ?? []);
   }, [session]);
 
   useEffect(() => { void load(); }, [load]);
@@ -135,6 +172,10 @@ export function LeadsDesk() {
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    if (tab === "content") {
+      return posts.filter((r) => (!status || r.status === status)
+        && (!needle || JSON.stringify(r).toLowerCase().includes(needle)));
+    }
     if (tab === "inbound") {
       return quotes.filter((r) => (!status || r.status === status)
         && (!needle || JSON.stringify(r).toLowerCase().includes(needle)));
@@ -148,7 +189,19 @@ export function LeadsDesk() {
       if (namedOnly && !r.contact_name) return false;
       return !needle || JSON.stringify(r).toLowerCase().includes(needle);
     });
-  }, [tab, prospects, quotes, q, grade, prox, status, phoneOnly, namedOnly, showDisq]);
+  }, [tab, prospects, quotes, posts, q, grade, prox, status, phoneOnly, namedOnly, showDisq]);
+
+  /* Which pieces actually earned enquiries. utm_content carries the slug, so
+     this is a join rather than a guess — and a piece with no row here got
+     attention from people who were never going to buy. */
+  const quotesBySlug = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const q of quotes) {
+      const slug = q.utm?.utm_content;
+      if (slug) m.set(slug, (m.get(slug) ?? 0) + 1);
+    }
+    return m;
+  }, [quotes]);
 
   const patch = async (table: string, id: string, values: Record<string, unknown>) => {
     if (!supabase) return;
@@ -170,21 +223,23 @@ export function LeadsDesk() {
     <button onClick={() => supabase?.auth.signOut()} className="pill pill-outline focus-ring mt-6 px-5 py-3 text-sm font-semibold">Sign out</button>
   </div>;
 
-  const open = openId ? (tab === "outbound" ? prospects : quotes).find((r) => r.id === openId) : null;
+  const open = openId
+    ? (tab === "outbound" ? prospects : tab === "inbound" ? quotes : posts).find((r) => r.id === openId)
+    : null;
 
   return <div>
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="flex gap-1">
-        {(["outbound", "inbound"] as const).map((t) => <button key={t} onClick={() => { setTab(t); setStatus(""); setOpenId(null); }}
+        {(["outbound", "inbound", "content"] as const).map((t) => <button key={t} onClick={() => { setTab(t); setStatus(""); setOpenId(null); }}
           aria-pressed={tab === t}
           className={`pill focus-ring px-4 py-2 text-sm font-semibold ${tab === t ? "bg-ink text-paper" : "pill-outline"}`}>
-          {t === "outbound" ? "Outbound prospects" : "Inbound quotes"}
+          {t === "outbound" ? "Outbound prospects" : t === "inbound" ? "Inbound quotes" : "Content"}
         </button>)}
       </div>
       <div className="flex items-center gap-3 text-sm">
         <span className="text-ink-soft">{session.user.email}</span>
         <button onClick={() => void load()} className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Refresh</button>
-        <button
+        {tab !== "content" && <button
           onClick={async () => {
             setExporting(true);
             // Export exactly what is on screen, filters included - an export that
@@ -196,7 +251,7 @@ export function LeadsDesk() {
           disabled={exporting || !rows.length}
           className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold disabled:opacity-40">
           {exporting ? "Building…" : `Export ${rows.length} to Excel`}
-        </button>
+        </button>}
         <button onClick={() => supabase?.auth.signOut()} className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Sign out</button>
       </div>
     </div>
@@ -207,6 +262,19 @@ export function LeadsDesk() {
         ["Grade A or B", live.filter((r) => r.grade === "A" || r.grade === "B").length, "worth a call"],
         ["Named contact", live.filter((r) => r.contact_name).length, "a person, not an inbox"],
         ["Same corridor", live.filter((r) => r.proximity_band === "same-corridor").length, "shortest delivery run"],
+      ] as [string, number, string][]).map(([k, n, sub]) => <div key={k} className="card p-5">
+        <div className="eyebrow">{k}</div>
+        <div className="mt-2 font-mono text-3xl font-semibold tabular-nums">{n}</div>
+        <div className="mt-1 text-xs text-ink-soft">{sub}</div>
+      </div>)}
+    </div>}
+
+    {tab === "content" && <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {([
+        ["Posted", posts.filter((p) => p.status === "posted").length, `${posts.length} planned`],
+        ["Ready to post", posts.filter((p) => p.status === "approved").length, "reviewed and approved"],
+        ["Quotes from content", [...quotesBySlug.values()].reduce((a, b) => a + b, 0), "traced by utm_content"],
+        ["Waiting on footage", posts.filter((p) => p.source !== "generated" && p.status === "queued" && p.shots.length > 0).length, "see social/SHOOT.md"],
       ] as [string, number, string][]).map(([k, n, sub]) => <div key={k} className="card p-5">
         <div className="eyebrow">{k}</div>
         <div className="mt-2 font-mono text-3xl font-semibold tabular-nums">{n}</div>
@@ -227,7 +295,7 @@ export function LeadsDesk() {
         </select>
       </>}
       <select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)} className="focus-ring rounded-md border border-line bg-white px-3 py-2 text-sm">
-        <option value="">Any status</option>{(tab === "outbound" ? OUT_STATUS : IN_STATUS).map((s) => <option key={s} value={s}>{s}</option>)}
+        <option value="">Any status</option>{(tab === "outbound" ? OUT_STATUS : tab === "inbound" ? IN_STATUS : POST_STATUS).map((s) => <option key={s} value={s}>{s}</option>)}
       </select>
       {tab === "outbound" && <>
         <label className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-sm">
@@ -244,17 +312,32 @@ export function LeadsDesk() {
 
     <div className="card mt-4 overflow-x-auto p-0">
       <table className="w-full border-collapse text-sm">
-        <caption className="sr-only">{tab === "outbound" ? "Outbound prospects" : "Inbound quote requests"}</caption>
+        <caption className="sr-only">{tab === "outbound" ? "Outbound prospects" : tab === "inbound" ? "Inbound quote requests" : "Planned content"}</caption>
         <thead>
           <tr className="border-b border-line">
             {(tab === "outbound"
               ? ["Grade", "Score", "Company", "Contact", "Phone", "Distance", "Status"]
-              : ["Received", "Name", "Company", "Phone", "Format", "Qty", "Came from", "Status"]
+              : tab === "inbound"
+              ? ["Received", "Name", "Company", "Phone", "Format", "Qty", "Came from", "Status"]
+              : ["Week", "Type", "Title", "Pillar", "Needs", "Quotes", "Status"]
             ).map((h) => <th key={h} scope="col" className="eyebrow whitespace-nowrap px-3 py-3 text-left">{h}</th>)}
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => tab === "outbound" ? (() => { const p = r as Prospect; return <tr key={p.id}
+          {rows.map((r) => tab === "content" ? (() => { const s = r as Post; return <tr key={s.id}
+            onClick={() => setOpenId(s.id)} tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenId(s.id); } }}
+            className={`cursor-pointer border-b border-line/50 hover:bg-paper ${s.status === "skipped" ? "opacity-50" : ""}`}>
+            <td className="whitespace-nowrap px-3 py-2.5 font-mono text-xs">{fmtDate(s.week_of)}</td>
+            <td className="px-3 py-2.5"><span className="rounded bg-ultra px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-paper">{s.kind}</span>
+              <div className="mt-1 text-[10px] text-ink-soft">{s.format}</div></td>
+            <td className="px-3 py-2.5"><b>{s.title}</b>
+              <div className="text-xs text-ink-soft">{s.hook}</div></td>
+            <td className="px-3 py-2.5 text-xs">{s.pillar}</td>
+            <td className="px-3 py-2.5 font-mono text-xs">{s.source === "generated" ? "generated" : s.shots.length ? `shots ${s.shots.join(",")}` : "—"}</td>
+            <td className="px-3 py-2.5 text-right font-mono tabular-nums">{quotesBySlug.get(s.slug) ?? 0}</td>
+            <td className="px-3 py-2.5 text-xs">{s.status}</td>
+          </tr>; })() : tab === "outbound" ? (() => { const p = r as Prospect; return <tr key={p.id}
             onClick={() => setOpenId(p.id)} tabIndex={0}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenId(p.id); } }}
             className={`cursor-pointer border-b border-line/50 hover:bg-paper ${p.do_not_contact ? "opacity-50" : ""}`}>
@@ -290,11 +373,12 @@ export function LeadsDesk() {
       <aside role="dialog" aria-modal="true" aria-label="Record detail"
         className="fixed inset-y-0 right-0 z-50 w-full max-w-[560px] overflow-y-auto border-l border-line bg-white p-6">
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-xl font-semibold">{"company_name" in open ? open.company_name : open.name}</h2>
+          <h2 className="text-xl font-semibold">{"slug" in open ? open.title : "company_name" in open ? open.company_name : open.name}</h2>
           <button onClick={() => setOpenId(null)} className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Close</button>
         </div>
 
-        {"company_name" in open ? <ProspectDetail p={open as Prospect} onPatch={(v) => patch("outbound_prospects", open.id, v)} busy={saving === open.id} />
+        {"slug" in open ? <PostDetail s={open as Post} quotes={quotesBySlug.get((open as Post).slug) ?? 0} onPatch={(v) => patch("social_posts", open.id, v)} busy={saving === open.id} />
+          : "company_name" in open ? <ProspectDetail p={open as Prospect} onPatch={(v) => patch("outbound_prospects", open.id, v)} busy={saving === open.id} />
           : <QuoteDetail c={open as Quote} onPatch={(v) => patch("quote_requests", open.id, v)} busy={saving === open.id} />}
       </aside>
     </>}
@@ -413,6 +497,140 @@ function QuoteDetail({ c, onPatch, busy }: { c: Quote; onPatch: (v: Record<strin
     </select>
     <div className="eyebrow mt-6">Notes</div>
     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={4}
+      className="focus-ring mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink" />
+    <button disabled={busy} onClick={() => onPatch({ notes })} className="pill focus-ring mt-3 bg-ultra px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-40">
+      {busy ? "Saving…" : "Save notes"}
+    </button>
+  </>;
+}
+
+function PostDetail({ s, quotes, onPatch, busy }: { s: Post; quotes: number; onPatch: (v: Record<string, unknown>) => void; busy: boolean }) {
+  const [channel, setChannel] = useState<string>("instagram");
+  const [notes, setNotes] = useState(s.notes ?? "");
+  const [copied, setCopied] = useState("");
+
+  const rendered = s.platforms?.[channel];
+  // Rows planned before the per-platform layer existed still carry only the
+  // generic caption, so fall back rather than showing an empty box.
+  const [draft, setDraft] = useState(rendered?.text ?? captionFor(s, channel));
+  useEffect(() => { setDraft(s.platforms?.[channel]?.text ?? captionFor(s, channel)); }, [channel, s]);
+
+  const copy = async (key: string, text: string) => {
+    try { await navigator.clipboard.writeText(text); setCopied(key); setTimeout(() => setCopied(""), 1600); }
+    catch { alert("Clipboard blocked. Select the text and copy it by hand."); }
+  };
+  const save = () => onPatch({ platforms: { ...s.platforms, [channel]: { ...rendered, text: draft } } });
+
+  return <>
+    <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+      <span className="rounded bg-ultra px-2 py-0.5 font-mono text-xs font-bold uppercase text-paper">{s.kind}</span>
+      <span className="pill px-3 py-0.5 text-xs">{s.format}</span>
+      <span className="pill px-3 py-0.5 text-xs">{s.pillar}</span>
+      {s.source !== "footage" && <span className="pill px-3 py-0.5 text-xs">{s.source}</span>}
+      {quotes > 0 && <span className="pill px-3 py-0.5 text-xs text-[#1B7F4B]">{quotes} quote{quotes === 1 ? "" : "s"}</span>}
+    </div>
+
+    <div className="spec-panel mt-5">
+      <div className="spec-panel-rows">
+        {([["Week of", fmtDate(s.week_of)], ["Slot", `${s.slot} of 4`], ["Hook", s.hook],
+           ["Answers", rendered?.query ?? null],
+           ["Needs", s.source === "generated" ? "nothing filmed" : s.shots.length ? `shot ${s.shots.join(", ")} from SHOOT.md` : "no footage"],
+           ["Files", s.kind === "video" ? `social/out/${s.slug}.mp4` : `social/out/${s.slug}/`],
+           ["Slug", s.slug]] as [string, string | null][])
+          .filter(([, v]) => v).map(([k, v]) => <div key={k}><span>{k}</span><b>{v}</b></div>)}
+      </div>
+    </div>
+
+    {s.generation?.prompt && <>
+      <div className="eyebrow mt-6">Generation prompt</div>
+      <p className="mt-1 text-xs text-ink-soft">A diagram, not a claim about the floor. Nothing generated is ever captioned as though it were filmed here.</p>
+      <p className="mt-2 rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">{s.generation.prompt}</p>
+      <button onClick={() => copy("gen", s.generation?.prompt ?? "")} className="pill pill-outline focus-ring mt-2 px-4 py-2 text-xs font-semibold">
+        {copied === "gen" ? "Copied" : "Copy prompt"}
+      </button>
+    </>}
+
+    <div className="eyebrow mt-6">Post it</div>
+    <p className="mt-1 text-xs text-ink-soft">Each platform gets its own wording, its own hashtags, and its own tagged link — so a quote three weeks from now still names the channel and the piece.</p>
+
+    <div className="mt-3 flex flex-wrap gap-2">
+      {CHANNELS.map((c) => <button key={c} onClick={() => setChannel(c)} aria-pressed={channel === c}
+        className={`pill focus-ring px-4 py-2 text-xs font-semibold capitalize ${channel === c ? "bg-ink text-paper" : "pill-outline"}`}>
+        {c}
+      </button>)}
+    </div>
+
+    {!!rendered?.warnings?.length && <p role="alert" className="mt-3 text-xs font-medium text-[#B3261E]">{rendered.warnings.join(" ")}</p>}
+
+    {rendered?.title && <>
+      <div className="eyebrow mt-5">YouTube title</div>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-sm">{rendered.title}</p>
+        <button onClick={() => copy("title", rendered.title!)} className="pill pill-outline focus-ring px-4 py-2 text-xs font-semibold">
+          {copied === "title" ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </>}
+
+    <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={14}
+      aria-label={`${channel} caption`}
+      className="focus-ring mt-3 w-full rounded-md border border-line bg-white px-3 py-2 font-mono text-xs outline-none focus:border-ink" />
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <button onClick={() => copy("text", draft)} className="pill focus-ring bg-ultra px-5 py-2.5 text-sm font-semibold text-paper">
+        {copied === "text" ? "Copied" : `Copy for ${channel}`}
+      </button>
+      <button disabled={busy || draft === rendered?.text} onClick={save}
+        className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold disabled:opacity-40">
+        {busy ? "Saving…" : "Save edit"}
+      </button>
+      <span className="font-mono text-xs text-ink-soft">{draft.length} chars</span>
+    </div>
+
+    {rendered?.keywords && <>
+      <div className="eyebrow mt-5">YouTube tags</div>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="flex-1 rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">{rendered.keywords}</p>
+        <button onClick={() => copy("kw", rendered.keywords!)} className="pill pill-outline focus-ring px-4 py-2 text-xs font-semibold">
+          {copied === "kw" ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </>}
+
+    {rendered?.firstComment && <>
+      <div className="eyebrow mt-5">First comment</div>
+      <p className="mt-1 text-xs text-ink-soft">LinkedIn suppresses posts carrying an outbound link, so the link goes here instead — post it as the first comment yourself, immediately.</p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="flex-1 break-all rounded-md border border-line bg-paper px-3 py-2 font-mono text-xs">{rendered.firstComment}</p>
+        <button onClick={() => copy("fc", rendered.firstComment!)} className="pill pill-outline focus-ring px-4 py-2 text-xs font-semibold">
+          {copied === "fc" ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </>}
+
+    {rendered?.alt && <>
+      <div className="eyebrow mt-5">Alt text</div>
+      <p className="mt-1 text-xs text-ink-soft">Paste into the platform&rsquo;s accessibility field. It is read aloud to people using a screen reader, and it is one of the few things about an image that actually gets indexed.</p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="flex-1 rounded-md border border-line bg-paper px-3 py-2 text-xs">{rendered.alt}</p>
+        <button onClick={() => copy("alt", rendered.alt!)} className="pill pill-outline focus-ring px-4 py-2 text-xs font-semibold">
+          {copied === "alt" ? "Copied" : "Copy"}
+        </button>
+      </div>
+    </>}
+
+    <div className="eyebrow mt-6">Status</div>
+    <div className="mt-2 flex flex-wrap gap-2">
+      <select aria-label="Status" value={s.status} onChange={(e) => onPatch({ status: e.target.value })}
+        className="focus-ring rounded-md border border-line bg-white px-3 py-2 text-sm">
+        {POST_STATUS.map((v) => <option key={v} value={v}>{v}</option>)}
+      </select>
+      {s.status !== "posted" && <button onClick={() => onPatch({ status: "posted", posted_at: new Date().toISOString() })}
+        className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Mark posted now</button>}
+    </div>
+    <p className="mt-2 text-xs text-ink-soft">Nothing here posts itself. A person copies the caption, posts it, and marks it — the same rule the lead pipeline runs on.</p>
+
+    <div className="eyebrow mt-6">Notes</div>
+    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
       className="focus-ring mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink" />
     <button disabled={busy} onClick={() => onPatch({ notes })} className="pill focus-ring mt-3 bg-ultra px-5 py-2.5 text-sm font-semibold text-paper disabled:opacity-40">
       {busy ? "Saving…" : "Save notes"}

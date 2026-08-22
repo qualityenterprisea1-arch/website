@@ -17,3 +17,5 @@ node_modules/
 tsconfig.tsbuildinfo
 shots/
 images/process/*.png
+social/footage/
+social/out/
