@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, configured } from "@/lib/supabaseClient";
+import { exportWorkbook } from "./exportWorkbook";
 
 /* The staff leads desk.
  *
@@ -105,6 +106,7 @@ export function LeadsDesk() {
   const [showDisq, setShowDisq] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [saving, setSaving] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!supabase) { setReady(true); return; }
@@ -181,6 +183,19 @@ export function LeadsDesk() {
       <div className="flex items-center gap-3 text-sm">
         <span className="text-ink-soft">{session.user.email}</span>
         <button onClick={() => void load()} className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Refresh</button>
+        <button
+          onClick={async () => {
+            setExporting(true);
+            // Export exactly what is on screen, filters included - an export that
+            // silently ignores the filters is how the wrong list gets called.
+            try { await exportWorkbook(tab, rows as Prospect[], rows as unknown as Quote[]); }
+            catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+            finally { setExporting(false); }
+          }}
+          disabled={exporting || !rows.length}
+          className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold disabled:opacity-40">
+          {exporting ? "Building…" : `Export ${rows.length} to Excel`}
+        </button>
         <button onClick={() => supabase?.auth.signOut()} className="pill pill-outline focus-ring px-4 py-2 text-sm font-semibold">Sign out</button>
       </div>
     </div>
